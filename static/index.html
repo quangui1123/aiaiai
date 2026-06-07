@@ -3,21 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Token Proxy — 统一 AI API 网关</title>
+<title>AI Token Proxy — 统一AI模型API网关</title>
 <style>
 :root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--radius:8px;--font:system-ui,-apple-system,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6}
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:10}
-.logo{font-size:15px;font-weight:700;color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:8px}
-.logo svg{width:20px;height:20px}
+.logo{font-size:15px;font-weight:700;color:var(--accent);text-decoration:none}
 nav{display:flex;align-items:center;gap:4px}
 nav a{padding:6px 12px;color:var(--dim);text-decoration:none;font-size:13px;border-radius:6px;transition:all .15s}
 nav a:hover{color:var(--text);background:rgba(255,255,255,.04)}
-.lang-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--dim);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .15s;margin-left:8px}
-.lang-btn:hover{color:var(--text);border-color:var(--accent)}
-.lang-btn.active{color:var(--accent);border-color:var(--accent)}
-.lang-btn svg{width:14px;height:14px;flex-shrink:0}
 .hero{padding:80px 24px 48px;text-align:center;max-width:680px;margin:0 auto}
 .hero h1{font-size:36px;font-weight:700;margin-bottom:14px;letter-spacing:-.5px;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hero p{color:var(--dim);font-size:16px;line-height:1.7;max-width:520px;margin:0 auto 28px}
@@ -25,7 +20,7 @@ nav a:hover{color:var(--text);background:rgba(255,255,255,.04)}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);text-decoration:none;transition:all .15s;border:1px solid transparent}
 .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#4c6ef5;transform:translateY(-1px);box-shadow:0 4px 12px rgba(92,124,250,.25)}
 .btn-outline{background:transparent;color:var(--text);border-color:var(--border)}.btn-outline:hover{background:rgba(255,255,255,.04);border-color:var(--accent)}
-.container{max-width:920px;margin:0 auto;padding:0 24px 64px}
+.container{max-width:960px;margin:0 auto;padding:0 24px 64px}
 .section{margin-bottom:48px}
 .section h2{font-size:18px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px}
 .section h2::before{content:'';display:inline-block;width:3px;height:18px;background:var(--accent);border-radius:2px}
@@ -42,80 +37,93 @@ td{color:var(--text)}tr:last-child td{border-bottom:none}
 .mono{font-family:'SF Mono',Consolas,monospace;font-size:12px}
 .price{font-family:'SF Mono',Consolas,monospace;font-size:12px;white-space:nowrap}
 .code-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;font-family:'SF Mono',Consolas,monospace;font-size:12px;line-height:1.8;overflow-x:auto;white-space:pre;color:var(--green);position:relative}
-.code-block .copy-btn{position:absolute;top:10px;right:10px;padding:4px 10px;background:var(--bg);border:1px solid var(--border);color:var(--dim);border-radius:4px;cursor:pointer;font-size:11px;font-family:var(--font)}
-.code-block .copy-btn:hover{color:var(--text);border-color:var(--accent)}
+.code-block .copy-btn{position:absolute;top:10px;right:10px;padding:4px 10px;background:var(--bg);border:1px solid var(--border);color:var(--dim);border-radius:4px;cursor:pointer;font-size:11px}
+.code-block .copy-btn:hover{color:var(--text)}
+.provider-tag{display:inline-block;padding:2px 8px;background:rgba(92,124,250,.1);border:1px solid rgba(92,124,250,.2);border-radius:10px;font-size:11px;color:var(--accent);margin-right:4px;margin-bottom:4px}
+.stats-bar{display:flex;gap:20px;justify-content:center;margin-bottom:32px;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-num{font-size:32px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:11px;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
 footer{text-align:center;padding:32px 24px;color:var(--dim);font-size:12px;border-top:1px solid var(--border)}
 footer a{color:var(--accent);text-decoration:none}
-.toast{position:fixed;top:20px;right:20px;z-index:999;padding:10px 18px;border-radius:var(--radius);font-size:13px;animation:slideIn .3s ease}
-.toast-ok{background:rgba(56,217,169,.12);border:1px solid var(--green);color:var(--green)}
-.toast-err{background:rgba(255,107,107,.12);border:1px solid var(--red);color:var(--red)}
+.toast{position:fixed;top:20px;right:20px;z-index:999;padding:10px 18px;border-radius:var(--radius);font-size:13px;animation:slideIn .3s ease;background:rgba(56,217,169,.12);border:1px solid var(--green);color:var(--green)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-.link{color:var(--accent);text-decoration:none;font-size:13px}.link:hover{text-decoration:underline}
-.provider-tag{display:inline-block;padding:2px 8px;background:rgba(92,124,250,.1);border:1px solid rgba(92,124,250,.2);border-radius:10px;font-size:11px;color:var(--accent);margin-right:4px;margin-bottom:4px}
-.fade{color:var(--dim)}
 </style>
 </head>
 <body>
 <header>
-<a href="/" class="logo">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-AI Token Proxy
-</a>
+<a href="/" class="logo">⚡ AI Token Proxy</a>
 <nav>
-<a href="/" data-i18n="nav_home">首页</a>
-<a href="/pricing" data-i18n="nav_pricing">定价</a>
-<a href="/login" data-i18n="nav_login">登录</a>
-<button class="lang-btn active" onclick="switchLang('zh')" id="btnZh">CN</button>
-<button class="lang-btn" onclick="switchLang('en')" id="btnEn">EN</button>
+<a href="/">首页</a>
+<a href="/pricing">模型定价</a>
+<a href="/login">登录</a>
 </nav>
 </header>
 
 <section class="hero">
-<h1 data-i18n="hero_title">统一 AI API 网关</h1>
-<p data-i18n="hero_desc">一个 API 接入所有主流大模型。OpenAI、Claude、Gemini、DeepSeek、Kimi、GLM、Qwen — 统一计费，统一管理。</p>
+<h1>统一 AI 模型 API 网关</h1>
+<p>一个 API 接入 300+ AI 模型，覆盖 OpenAI、Claude、Gemini、DeepSeek、豆包、文心、混元、通义千问等 27 个厂商。统一计费，统一管理。</p>
+<div class="stats-bar">
+<div class="stat-item"><div class="stat-num">27</div><div class="stat-label">AI 厂商</div></div>
+<div class="stat-item"><div class="stat-num" id="modelCount">300+</div><div class="stat-label">AI 模型</div></div>
+<div class="stat-item"><div class="stat-num">$0.0001</div><div class="stat-label">最低单价</div></div>
+</div>
 <div class="cta">
-<a href="/login" class="btn btn-primary" data-i18n="cta_start">免费注册</a>
-<a href="/pricing" class="btn btn-outline" data-i18n="cta_pricing">查看定价</a>
+<a href="/login" class="btn btn-primary">免费注册</a>
+<a href="/pricing" class="btn btn-outline">查看全部模型定价</a>
 </div>
 </section>
 
 <div class="container">
 <div class="section">
-<h2 data-i18n="providers_title">支持厂商</h2>
+<h2>支持厂商</h2>
 <div style="display:flex;flex-wrap:wrap;gap:6px">
-<span class="provider-tag">OpenAI</span><span class="provider-tag">Anthropic Claude</span><span class="provider-tag">Google Gemini</span><span class="provider-tag">DeepSeek</span><span class="provider-tag">Moonshot Kimi</span><span class="provider-tag">ZhipuAI GLM</span><span class="provider-tag">Qwen</span><span class="provider-tag">SiliconFlow</span>
+<span class="provider-tag">OpenAI</span><span class="provider-tag">Anthropic Claude</span>
+<span class="provider-tag">Google Gemini</span><span class="provider-tag">DeepSeek</span>
+<span class="provider-tag">Moonshot Kimi</span><span class="provider-tag">ZhipuAI GLM</span>
+<span class="provider-tag">Qwen 通义千问</span><span class="provider-tag">豆包 Doubao</span>
+<span class="provider-tag">百度文心 ERNIE</span><span class="provider-tag">腾讯混元</span>
+<span class="provider-tag">MiniMax</span><span class="provider-tag">零一万物 Yi</span>
+<span class="provider-tag">Mistral AI</span><span class="provider-tag">Cohere</span>
+<span class="provider-tag">xAI Grok</span><span class="provider-tag">Perplexity</span>
+<span class="provider-tag">OpenRouter</span><span class="provider-tag">讯飞星火</span>
+<span class="provider-tag">360 智脑</span><span class="provider-tag">阶跃星辰</span>
+<span class="provider-tag">百川智能</span><span class="provider-tag">Groq</span>
+<span class="provider-tag">Together AI</span><span class="provider-tag">Fireworks</span>
+<span class="provider-tag">SiliconFlow</span><span class="provider-tag">Jina AI</span>
+<span class="provider-tag">Voyage AI</span>
 </div>
-</div>
-
-<div class="section" id="pricing">
-<h2 data-i18n="pricing_title">模型定价</h2>
-<div id="pricing-table"><p class="fade" style="text-align:center;padding:32px">加载中...</p></div>
 </div>
 
 <div class="section">
-<h2 data-i18n="features_title">特性</h2>
+<h2>热门模型定价</h2>
+<div id="hot-pricing">加载中...</div>
+</div>
+
+<div class="section">
+<h2>核心功能</h2>
 <div class="grid3">
-<div class="card"><div class="icon">🔌</div><h3 data-i18n="f1_title">OpenAI 兼容</h3><p data-i18n="f1_desc">标准 /v1/chat/completions 接口，任何 OpenAI SDK 即插即用。</p></div>
-<div class="card"><div class="icon">📊</div><h3 data-i18n="f2_title">用量追踪</h3><p data-i18n="f2_desc">实时 Token 统计，按模型独立定价，配额精确到 $0.0001。</p></div>
-<div class="card"><div class="icon">👥</div><h3 data-i18n="f3_title">多用户管理</h3><p data-i18n="f3_desc">邮箱注册登录，管理员自定义额度，每个用户独立 API Token。</p></div>
-<div class="card"><div class="icon">🌐</div><h3 data-i18n="f4_title">多 Key 负载均衡</h3><p data-i18n="f4_desc">同一厂商多 API Key 权重分发，自动故障转移。</p></div>
-<div class="card"><div class="icon">🚀</div><h3 data-i18n="f5_title">流式输出</h3><p data-i18n="f5_desc">完整支持 SSE Streaming，实时返回生成内容。</p></div>
-<div class="card"><div class="icon">🔐</div><h3 data-i18n="f6_title">安全隔离</h3><p data-i18n="f6_desc">用户间数据完全隔离，Token 级别速率限制。</p></div>
+<div class="card"><div class="icon">🔌</div><h3>OpenAI 兼容接口</h3><p>标准 /v1/chat/completions 端点，任何 OpenAI SDK 即插即用，零改动迁移。</p></div>
+<div class="card"><div class="icon">📊</div><h3>用量精确追踪</h3><p>实时 Token 统计，按模型独立定价，配额精确到 $0.0001，白名单/黑名单过滤。</p></div>
+<div class="card"><div class="icon">👥</div><h3>多用户管理</h3><p>邮箱注册登录，管理员自定义额度与速率限制，每个用户独立 API Token。</p></div>
+<div class="card"><div class="icon">🌐</div><h3>多 Key 负载均衡</h3><p>同一厂商多 API Key 权重分发，自动故障转移，保障服务高可用。</p></div>
+<div class="card"><div class="icon">🚀</div><h3>流式输出 SSE</h3><p>完整支持 Server-Sent Events 流式输出，实时返回生成内容。</p></div>
+<div class="card"><div class="icon">🔐</div><h3>安全隔离</h3><p>用户间数据完全隔离，Token 级速率限制，API Key 加密存储。</p></div>
 </div>
 </div>
 
 <div class="section">
-<h2 data-i18n="quickstart_title">快速开始</h2>
+<h2>快速开始</h2>
 <div class="code-block">
-<span class="copy-btn" onclick="copyCode()" data-i18n="copy_btn">复制</span>
-<span id="code-content"># 设置 Token
+<span class="copy-btn" onclick="copyCode()">复制</span>
+<span id="code"># 设置 Token
 export TOKEN="sk-your-token-here"
 
 # 对话补全
 curl https://HOST/v1/chat/completions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello!"}]}'
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"你好！"}]}'
 
 # 获取模型列表
 curl https://HOST/v1/models -H "Authorization: Bearer $TOKEN"</span>
@@ -123,103 +131,42 @@ curl https://HOST/v1/models -H "Authorization: Bearer $TOKEN"</span>
 </div>
 </div>
 
-<footer>
-<span data-i18n="footer">AI Token Proxy — 自托管 LLM API 聚合网关</span> · <a href="/login">Admin</a>
-</footer>
+<footer>AI Token Proxy — 自托管 LLM API 聚合网关 · <a href="/login">管理后台</a></footer>
 
 <script>
-// i18n
-const I18N = {
-zh:{nav_home:'首页',nav_pricing:'定价',nav_login:'登录',
-hero_title:'统一 AI API 网关',hero_desc:'一个 API 接入所有主流大模型。OpenAI、Claude、Gemini、DeepSeek、Kimi、GLM、Qwen — 统一计费，统一管理。',
-cta_start:'免费注册',cta_pricing:'查看定价',
-providers_title:'支持厂商',
-pricing_title:'模型定价',pricing_model:'模型',pricing_input:'输入价格',pricing_output:'输出价格',pricing_unit:'单位',
-features_title:'特性',
-f1_title:'OpenAI 兼容',f1_desc:'标准 /v1/chat/completions 接口，任何 OpenAI SDK 即插即用。',
-f2_title:'用量追踪',f2_desc:'实时 Token 统计，按模型独立定价，配额精确到 $0.0001。',
-f3_title:'多用户管理',f3_desc:'邮箱注册登录，管理员自定义额度，每个用户独立 API Token。',
-f4_title:'多 Key 负载均衡',f4_desc:'同一厂商多 API Key 权重分发，自动故障转移。',
-f5_title:'流式输出',f5_desc:'完整支持 SSE Streaming，实时返回生成内容。',
-f6_title:'安全隔离',f6_desc:'用户间数据完全隔离，Token 级别速率限制。',
-quickstart_title:'快速开始',copy_btn:'复制',copied:'已复制！',
-footer:'AI Token Proxy — 自托管 LLM API 聚合网关',
-code:'# 设置 Token\nexport TOKEN="sk-your-token-here"\n\n# 对话补全\ncurl https://HOST/v1/chat/completions \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '"'"'{"model":"gpt-4o-mini","messages":[{"role":"user","content":"你好！"}]}'"'"'\n\n# 获取模型列表\ncurl https://HOST/v1/models -H "Authorization: Bearer $TOKEN"'},
-en:{nav_home:'Home',nav_pricing:'Pricing',nav_login:'Login',
-hero_title:'Unified AI API Gateway',hero_desc:'One API for all major LLM providers. OpenAI, Claude, Gemini, DeepSeek, Kimi, GLM, Qwen — unified billing, unified management.',
-cta_start:'Get Started Free',cta_pricing:'View Pricing',
-providers_title:'Supported Providers',
-pricing_title:'Model Pricing',pricing_model:'Model',pricing_input:'Input Price',pricing_output:'Output Price',pricing_unit:'Unit',
-features_title:'Features',
-f1_title:'OpenAI Compatible',f1_desc:'Standard /v1/chat/completions endpoint. Drop-in replacement for any OpenAI SDK.',
-f2_title:'Usage Tracking',f2_desc:'Real-time token stats, per-model pricing, quota tracked to $0.0001 precision.',
-f3_title:'Multi-User',f3_desc:'Email-based accounts, admin custom quotas, per-user API tokens.',
-f4_title:'Load Balancing',f4_desc:'Multi-key weighted distribution per provider with automatic failover.',
-f5_title:'Streaming',f5_desc:'Full SSE streaming support for real-time generation.',
-f6_title:'Security',f6_desc:'Complete user isolation, token-level rate limiting.',
-quickstart_title:'Quick Start',copy_btn:'Copy',copied:'Copied!',
-footer:'AI Token Proxy — Self-hosted LLM API Gateway',
-code:'# Set your token\nexport TOKEN="sk-your-token-here"\n\n# Chat completion\ncurl https://HOST/v1/chat/completions \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '"'"'{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello!"}]}'"'"'\n\n# List models\ncurl https://HOST/v1/models -H "Authorization: Bearer $TOKEN"'}
-};
-
-var currentLang = localStorage.getItem('lang') || 'zh';
-function switchLang(l) {
-currentLang = l;
-localStorage.setItem('lang', l);
-document.getElementById('btnZh').classList.toggle('active', l==='zh');
-document.getElementById('btnEn').classList.toggle('active', l==='en');
-applyI18n();
-}
-function t(k) { return I18N[currentLang][k] || k; }
-function applyI18n() {
-document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
-document.getElementById('code-content').textContent = I18N[currentLang].code;
-}
-applyI18n();
-switchLang(currentLang);
-
-function toast(msg, isErr) {
-var d = document.createElement('div');
-d.className = 'toast ' + (isErr ? 'toast-err' : 'toast-ok');
-d.textContent = msg;
-document.body.appendChild(d);
-setTimeout(function(){d.remove()}, 2500);
-}
-
-function copyCode() {
-var text = document.getElementById('code-content').textContent;
-navigator.clipboard.writeText(text).then(function(){toast(t('copied'))});
-}
-
-async function loadPricing() {
-try {
-var r = await fetch('/api/public/models');
-var d = await r.json();
-if (!d.models || !d.models.length) {
-document.getElementById('pricing-table').innerHTML = '<p class="fade" style="text-align:center;padding:24px">'+t('pricing_title')+' — 暂无数据</p>';
-return;
-}
-var groups = {};
+async function loadPricing(){
+try{
+var r=await fetch('/api/public/models');
+var d=await r.json();
+document.getElementById('modelCount').textContent=d.models.length;
+if(!d.models.length)return;
+var groups={};
 d.models.forEach(function(m){
-if (!groups[m.provider]) groups[m.provider] = [];
+if(!groups[m.provider])groups[m.provider]=[];
 groups[m.provider].push(m);
 });
-var html = '';
-for (var p in groups) {
-html += '<h3 style="font-size:13px;margin:16px 0 8px;color:var(--accent)">'+p+'</h3>';
-html += '<table><thead><tr><th>'+t('pricing_model')+'</th><th>'+t('pricing_input')+'</th><th>'+t('pricing_output')+'</th><th>'+t('pricing_unit')+'</th></tr></thead><tbody>';
-groups[p].forEach(function(m){
-html += '<tr><td><strong>'+m.display_name+'</strong><br><span class="mono" style="color:var(--dim)">'+m.id+'</span></td>';
-html += '<td class="price">$'+m.input_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';
-html += '<td class="price">$'+m.output_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';
-html += '<td>'+m.unit_size.toLocaleString()+' tokens</td></tr>';
+var shown=0,html='';
+for(var p in groups){
+if(shown>=3)break;shown++;
+html+='<h3 style="font-size:13px;margin:16px 0 8px;color:var(--accent)">'+p+'</h3>';
+html+='<table><thead><tr><th>模型</th><th>输入价格</th><th>输出价格</th><th>单位</th></tr></thead><tbody>';
+groups[p].slice(0,5).forEach(function(m){
+html+='<tr><td><strong>'+m.display_name+'</strong><br><span class="mono" style="color:var(--dim)">'+m.id+'</span></td>';
+html+='<td class="price">$'+m.input_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';
+html+='<td class="price">$'+m.output_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';
+html+='<td>'+m.unit_size.toLocaleString()+' tokens</td></tr>';
 });
-html += '</tbody></table>';
+if(groups[p].length>5)html+='<tr><td colspan="4" style="text-align:center;color:var(--dim);font-size:12px">...及其他 '+(groups[p].length-5)+' 个模型 | <a href="/pricing" style="color:var(--accent)">查看全部</a></td></tr>';
+html+='</tbody></table>';
 }
-document.getElementById('pricing-table').innerHTML = html;
-} catch(e) {
-document.getElementById('pricing-table').innerHTML = '<p class="fade" style="text-align:center;padding:24px">加载定价失败</p>';
+document.getElementById('hot-pricing').innerHTML=html||'暂无数据';
+}catch(e){document.getElementById('hot-pricing').innerHTML='加载失败'}
 }
+function copyCode(){
+navigator.clipboard.writeText(document.getElementById('code').textContent).then(function(){
+var t=document.createElement('div');t.className='toast';t.textContent='已复制！';document.body.appendChild(t);
+setTimeout(function(){t.remove()},2000);
+});
 }
 loadPricing();
 </script>
