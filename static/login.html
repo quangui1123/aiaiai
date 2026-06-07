@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>鐧诲綍 鈥?AI Token Proxy</title>
+<title>登录 — AI Token Proxy</title>
 <style>
 :root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--radius:10px;--font:system-ui,-apple-system,sans-serif;--t:all .2s cubic-bezier(.4,0,.2,1)}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -35,26 +35,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </head>
 <body>
 <div class="container">
-<div class="top"><a href="/" class="logo">鈿?AI Token Proxy</a></div>
+<div class="top"><a href="/" class="logo">⚡ AI Token Proxy</a></div>
 <div class="msg msg-err" id="msgErr"></div>
 <div class="msg msg-ok" id="msgOk"></div>
 
 <div class="card" id="fLogin">
-<h1>鐧诲綍</h1><p class="sub">浣跨敤閭鐧诲綍浣犵殑璐︽埛</p>
-<div class="field"><label>閭</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label>瀵嗙爜</label><input type="password" id="loginPassword" placeholder="路路路路路路路路" autocomplete="current-password"></div>
-<button class="btn" onclick="doLogin()" id="loginBtn">鐧诲綍</button>
-<div class="switch">杩樻病鏈夎处鎴凤紵<a onclick="show('register')">娉ㄥ唽涓€涓?/a></div>
+<h1>登录</h1><p class="sub">使用邮箱登录你的账户</p>
+<div class="field"><label>邮箱</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
+<div class="field"><label>密码</label><input type="password" id="loginPassword" placeholder="········" autocomplete="current-password"></div>
+<button class="btn" onclick="doLogin()" id="loginBtn">登录</button>
+<div class="switch">还没有账户？<a onclick="show('register')">注册一个</a></div>
 </div>
 
 <div class="card hidden" id="fRegister">
-<h1>鍒涘缓璐︽埛</h1><p class="sub">娉ㄥ唽鍗冲彲鑾峰彇 API 浠ょ墝</p>
-<div class="field"><label>閭</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label>瀵嗙爜</label><input type="password" id="regPassword" placeholder="鑷冲皯 4 浣? autocomplete="new-password"></div>
-<button class="btn" onclick="doRegister()" id="regBtn">鍒涘缓璐︽埛</button>
-<div class="switch">宸叉湁璐︽埛锛?a onclick="show('login')">鐧诲綍</a></div>
+<h1>创建账户</h1><p class="sub">注册即可获取 API 令牌</p>
+<div class="field"><label>邮箱</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
+<div class="field"><label>密码</label><input type="password" id="regPassword" placeholder="至少 4 位" autocomplete="new-password"></div>
+<button class="btn" onclick="doRegister()" id="regBtn">创建账户</button>
+<div class="switch">已有账户？<a onclick="show('login')">登录</a></div>
 </div>
-<div class="footer"><a href="/">棣栭〉</a> 路 <a href="/pricing">妯″瀷瀹氫环</a></div>
+<div class="footer"><a href="/">首页</a> · <a href="/pricing">模型定价</a></div>
 </div>
 
 <script>
@@ -68,21 +68,21 @@ if(JWT){fetch('/api/auth/me',{headers:{Authorization:'Bearer '+JWT}}).then(funct
 
 async function doLogin(){
 hideMsgs();var email=document.getElementById('loginEmail').value.trim(),pw=document.getElementById('loginPassword').value;
-if(!email.includes('@')){err('璇疯緭鍏ユ湁鏁堥偖绠?);return}if(pw.length<4){err('瀵嗙爜鑷冲皯4浣?);return}
-var btn=document.getElementById('loginBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>鐧诲綍涓?..';
+if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
+var btn=document.getElementById('loginBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>登录中...';
 try{var r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw})});var d=await r.json();
-if(!r.ok){err('閭鎴栧瘑鐮侀敊璇?);return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('鐧诲綍鎴愬姛锛?);
-setTimeout(function(){window.location.href=d.user.is_admin?'/admin':'/dashboard'},600)}catch(e){err('鐧诲綍澶辫触锛岃閲嶈瘯')}
-finally{btn.disabled=false;btn.textContent='鐧诲綍'}}
+if(!r.ok){err('邮箱或密码错误');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('登录成功！');
+setTimeout(function(){window.location.href=d.user.is_admin?'/admin':'/dashboard'},600)}catch(e){err('登录失败，请重试')}
+finally{btn.disabled=false;btn.textContent='登录'}}
 
 async function doRegister(){
 hideMsgs();var email=document.getElementById('regEmail').value.trim(),pw=document.getElementById('regPassword').value;
-if(!email.includes('@')){err('璇疯緭鍏ユ湁鏁堥偖绠?);return}if(pw.length<4){err('瀵嗙爜鑷冲皯4浣?);return}
-var btn=document.getElementById('regBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>娉ㄥ唽涓?..';
+if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
+var btn=document.getElementById('regBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>注册中...';
 try{var r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,name:email.split('@')[0]})});var d=await r.json();
-if(!r.ok){err('娉ㄥ唽澶辫触锛岄偖绠卞彲鑳藉凡琚娇鐢?);return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('娉ㄥ唽鎴愬姛锛?);
-setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('娉ㄥ唽澶辫触锛岃閲嶈瘯')}
-finally{btn.disabled=false;btn.textContent='鍒涘缓璐︽埛'}}
+if(!r.ok){err('注册失败，邮箱可能已被使用');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('注册成功！');
+setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('注册失败，请重试')}
+finally{btn.disabled=false;btn.textContent='创建账户'}}
 
 document.addEventListener('keydown',function(e){if(e.key==='Enter'){if(document.getElementById('fRegister').classList.contains('hidden'))doLogin();else doRegister()}});
 </script></body></html>
