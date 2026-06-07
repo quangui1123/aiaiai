@@ -87,8 +87,9 @@ def init_db():
             FOREIGN KEY (token_id) REFERENCES user_tokens(id)
         );
     """)
-    # Seed providers
+    # Seed providers and models
     existing = conn.execute("SELECT COUNT(*) FROM providers").fetchone()[0]
+    model_count = conn.execute("SELECT COUNT(*) FROM models").fetchone()[0]
     if existing == 0:
         providers = [
             ("openai", "OpenAI", "https://api.openai.com/v1"),
@@ -123,6 +124,7 @@ def init_db():
         conn.executemany(
             "INSERT INTO providers (id, name, base_url) VALUES (?, ?, ?)", providers
         )
+    if model_count == 0:
         models = [
             ("gpt-4o", "openai", "GPT-4o", 0.0025, 0.01),
             ("gpt-4o-mini", "openai", "GPT-4o Mini", 0.00015, 0.0006),
@@ -431,6 +433,8 @@ def init_db():
             "INSERT OR REPLACE INTO models (id, provider_id, display_name, input_price, output_price) VALUES (?, ?, ?, ?, ?)",
             models
         )
+    conn.commit()
+    conn.close()
 
 # ── User management ─────────────────────────────────
 
@@ -870,4 +874,6 @@ def delete_model(model_id, provider_id):
     conn.execute("DELETE FROM models WHERE id=? AND provider_id=?", (model_id, provider_id))
     conn.commit()
     conn.close()
+
+
 
