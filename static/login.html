@@ -11,12 +11,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .container{width:100%;max-width:400px;padding:24px}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .logo{font-weight:700;font-size:16px;color:var(--accent);text-decoration:none}
-.lang-group{display:flex;gap:2px}
-.lang-btn{padding:4px 10px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer;font-size:11px;border-radius:4px;font-family:var(--font);transition:all .15s}
-.lang-btn:first-child{border-radius:4px 0 0 4px}
-.lang-btn:last-child{border-radius:0 4px 4px 0}
-.lang-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.lang-btn:hover:not(.active){color:var(--text);border-color:var(--dim)}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px}
 .card h1{font-size:20px;font-weight:600;margin-bottom:4px}
 .card .sub{color:var(--dim);font-size:13px;margin-bottom:22px}
@@ -24,10 +18,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .field label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
 .field input{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s}
 .field input:focus{border-color:var(--accent)}
-.field input::placeholder{color:#484f58}
-.btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.9}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;background:var(--accent);color:#fff}
+.btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:not-allowed}
 .msg{padding:9px 12px;border-radius:6px;font-size:12px;margin-bottom:14px;display:none}
 .msg.show{display:block}
 .msg-err{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--red)}
@@ -41,87 +33,58 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </head>
 <body>
 <div class="container">
-<div class="top">
-<a href="/" class="logo">⚡ AI Token Proxy</a>
-<div class="lang-group">
-<button class="lang-btn active" onclick="setLang('zh')">CN</button>
-<button class="lang-btn" onclick="setLang('en')">EN</button>
-</div>
-</div>
+<div class="top"><a href="/" class="logo">⚡ AI Token Proxy</a></div>
 
 <div class="msg msg-err" id="msgErr"></div>
 <div class="msg msg-ok" id="msgOk"></div>
 
 <div class="card" id="fLogin">
-<h1 data-i18n="loginTitle">登录</h1>
-<p class="sub" data-i18n="loginSub">使用邮箱登录你的账户</p>
-<div class="field"><label data-i18n="emailLabel">邮箱</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label data-i18n="pwLabel">密码</label><input type="password" id="loginPassword" placeholder="········" autocomplete="current-password"></div>
-<button class="btn btn-primary" onclick="doLogin()" id="loginBtn" data-i18n="loginBtn">登录</button>
-<div class="switch" id="loginSwitch"><span data-i18n="noAccount">还没有账户？</span> <a onclick="show('register')" data-i18n="createOne">注册一个</a></div>
+<h1>登录</h1>
+<p class="sub">使用邮箱登录你的账户</p>
+<div class="field"><label>邮箱</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
+<div class="field"><label>密码</label><input type="password" id="loginPassword" placeholder="········" autocomplete="current-password"></div>
+<button class="btn" onclick="doLogin()" id="loginBtn">登录</button>
+<div class="switch">还没有账户？<a onclick="show('register')">注册一个</a></div>
 </div>
 
 <div class="card hidden" id="fRegister">
-<h1 data-i18n="regTitle">注册</h1>
-<p class="sub" data-i18n="regSub">创建账户即可获取 API Token</p>
-<div class="field"><label data-i18n="emailLabel">邮箱</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label data-i18n="pwLabel">密码</label><input type="password" id="regPassword" placeholder="至少 4 位" autocomplete="new-password"></div>
-<button class="btn btn-primary" onclick="doRegister()" id="regBtn" data-i18n="regBtn">创建账户</button>
-<div class="switch" id="regSwitch"><span data-i18n="hasAccount">已有账户？</span> <a onclick="show('login')" data-i18n="signIn">登录</a></div>
+<h1>创建账户</h1>
+<p class="sub">注册即可获取 API Token</p>
+<div class="field"><label>邮箱</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
+<div class="field"><label>密码</label><input type="password" id="regPassword" placeholder="至少 4 位" autocomplete="new-password"></div>
+<button class="btn" onclick="doRegister()" id="regBtn">创建账户</button>
+<div class="switch">已有账户？<a onclick="show('login')">登录</a></div>
 </div>
 
-<div class="footer"><a href="/">首页</a> · <a href="/pricing">定价</a></div>
+<div class="footer"><a href="/">首页</a> · <a href="/pricing">模型定价</a></div>
 </div>
 
 <script>
-const TXT={zh:{loginTitle:'登录',loginSub:'使用邮箱登录你的账户',regTitle:'创建账户',regSub:'创建账户即可获取 API Token',
-emailLabel:'邮箱',pwLabel:'密码',loginBtn:'登录',regBtn:'创建账户',
-noAccount:'还没有账户？',createOne:'注册一个',hasAccount:'已有账户？',signIn:'登录',
-errEmail:'请输入有效邮箱',errPassword:'密码至少 4 位',errLogin:'邮箱或密码错误',errRegister:'注册失败，邮箱可能已被使用',
-okRegistered:'注册成功！',okLogin:'登录成功！'},
-en:{loginTitle:'Sign in',loginSub:'Sign in with your email',regTitle:'Create account',regSub:'Sign up to get your API token',
-emailLabel:'Email',pwLabel:'Password',loginBtn:'Sign in',regBtn:'Create account',
-noAccount:"Don't have an account?",createOne:'Create one',hasAccount:'Already have an account?',signIn:'Sign in',
-errEmail:'Please enter a valid email',errPassword:'Password must be at least 4 characters',errLogin:'Invalid email or password',errRegister:'Registration failed — email may be in use',
-okRegistered:'Account created!',okLogin:'Signed in!'}};
-var lang=localStorage.getItem('lang')||'zh';
-function t(k){return TXT[lang][k]||k}
-function setLang(l){lang=l;localStorage.setItem('lang',l);applyLang()}
-function applyLang(){
-document.querySelectorAll('[data-i18n]').forEach(function(el){el.textContent=t(el.getAttribute('data-i18n'))});
-document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.toggle('active',(b.textContent==='CN'&&lang==='zh')||(b.textContent==='EN'&&lang==='en'))});
-}
-applyLang();setLang(lang);
-
-function show(p){
-document.getElementById('fLogin').classList.toggle('hidden',p!=='login');
-document.getElementById('fRegister').classList.toggle('hidden',p!=='register');
-hideMsgs();
-}
+function show(p){document.getElementById('fLogin').classList.toggle('hidden',p!=='login');document.getElementById('fRegister').classList.toggle('hidden',p!=='register');hideMsgs()}
 function hideMsgs(){document.getElementById('msgErr').classList.remove('show');document.getElementById('msgOk').classList.remove('show')}
-function err(k){var e=document.getElementById('msgErr');e.textContent=t(k);e.classList.add('show');document.getElementById('msgOk').classList.remove('show')}
-function ok(k){var e=document.getElementById('msgOk');e.textContent=t(k);e.classList.add('show');document.getElementById('msgErr').classList.remove('show')}
+function err(t){var e=document.getElementById('msgErr');e.textContent=t;e.classList.add('show');document.getElementById('msgOk').classList.remove('show')}
+function ok(t){var e=document.getElementById('msgOk');e.textContent=t;e.classList.add('show');document.getElementById('msgErr').classList.remove('show')}
 
-const JWT=localStorage.getItem('aiaiai_jwt');
+var JWT=localStorage.getItem('aiaiai_jwt');
 if(JWT){fetch('/api/auth/me',{headers:{Authorization:'Bearer '+JWT}}).then(function(r){if(r.ok)window.location.href='/dashboard'})}
 
 async function doLogin(){
 hideMsgs();var email=document.getElementById('loginEmail').value.trim(),pw=document.getElementById('loginPassword').value;
-if(!email.includes('@')){err('errEmail');return}if(pw.length<4){err('errPassword');return}
-var btn=document.getElementById('loginBtn');btn.disabled=true;btn.textContent='...';
+if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
+var btn=document.getElementById('loginBtn');btn.disabled=true;btn.textContent='登录中...';
 try{var r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw})});var d=await r.json();
-if(!r.ok){err('errLogin');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('okLogin');
-setTimeout(function(){window.location.href=d.user.is_admin?'/admin':'/dashboard'},600)}catch(e){err('errLogin')}
-finally{btn.disabled=false;btn.textContent=t('loginBtn')}}
+if(!r.ok){err('邮箱或密码错误');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('登录成功！');
+setTimeout(function(){window.location.href=d.user.is_admin?'/admin':'/dashboard'},600)}catch(e){err('登录失败')}
+finally{btn.disabled=false;btn.textContent='登录'}}
 
 async function doRegister(){
 hideMsgs();var email=document.getElementById('regEmail').value.trim(),pw=document.getElementById('regPassword').value;
-if(!email.includes('@')){err('errEmail');return}if(pw.length<4){err('errPassword');return}
-var btn=document.getElementById('regBtn');btn.disabled=true;btn.textContent='...';
+if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
+var btn=document.getElementById('regBtn');btn.disabled=true;btn.textContent='注册中...';
 try{var r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,name:email.split('@')[0]})});var d=await r.json();
-if(!r.ok){err('errRegister');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('okRegistered');
-setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('errRegister')}
-finally{btn.disabled=false;btn.textContent=t('regBtn')}}
+if(!r.ok){err('注册失败，邮箱可能已被使用');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('注册成功！');
+setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('注册失败')}
+finally{btn.disabled=false;btn.textContent='创建账户'}}
 
 document.addEventListener('keydown',function(e){if(e.key==='Enter'){if(document.getElementById('fRegister').classList.contains('hidden'))doLogin();else doRegister()}});
 </script>
