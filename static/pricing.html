@@ -1,98 +1,47 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Token Proxy - Pricing</title>
+<title>妯″瀷瀹氫环 鈥?AI Token Proxy</title>
 <style>
-:root{
-  --bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;
-  --accent:#5c7cfa;--green:#38d9a9;--radius:6px;
-  --font:system-ui,-apple-system,sans-serif;
-}
+:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--radius:8px;--font:system-ui,-apple-system,sans-serif;--t:all .18s cubic-bezier(.4,0,.2,1)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
-header h1{font-size:16px;color:var(--accent);font-weight:600}
-header nav a{color:var(--dim);text-decoration:none;font-size:13px;margin-left:20px;transition:color .12s}
-header nav a:hover{color:var(--text)}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:50px;position:sticky;top:0;z-index:10}
+.logo{font-weight:700;font-size:14px;color:var(--accent);text-decoration:none}
+nav{display:flex;gap:12px}nav a{padding:6px 12px;color:var(--dim);text-decoration:none;font-size:13px;border-radius:6px;transition:var(--t)}nav a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.container{max-width:1000px;margin:0 auto;padding:32px 24px 64px}
 .hero{text-align:center;padding:40px 20px 20px}
-.hero h2{font-size:22px;margin-bottom:6px}
-.hero p{color:var(--dim);font-size:14px;max-width:500px;margin:0 auto}
-.container{max-width:1000px;margin:0 auto;padding:0 24px 60px}
-.provider-section{margin-bottom:32px}
+.hero h2{font-size:24px;font-weight:700;margin-bottom:6px}
+.hero p{color:var(--dim);font-size:14px}
+.provider-section{margin-bottom:28px;animation:fadeUp .4s ease}
+.provider-section:nth-child(2){animation-delay:.05s}.provider-section:nth-child(3){animation-delay:.1s}
 .provider-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.provider-header h3{font-size:15px}
+.provider-header h3{font-size:15px;color:var(--accent)}
 .provider-header .count{font-size:11px;color:var(--dim)}
-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:var(--t)}
+tr:hover td{background:rgba(255,255,255,.015)}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
-th{font-weight:500;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.3px;background:rgba(0,0,0,.2)}
-td{color:var(--text)}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.01)}
-.price{font-family:'SF Mono','Consolas',monospace;font-size:12px}
-.price span{color:var(--dim);font-size:10px}
-.footer{text-align:center;padding:20px;color:var(--dim);font-size:11px;border-top:1px solid var(--border)}
+th{font-weight:500;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:rgba(0,0,0,.2)}
+td{color:var(--text);transition:background .12s}tr:last-child td{border-bottom:none}
+.price{font-family:'SF Mono',Consolas,monospace;font-size:12px}
+.mono{font-family:'SF Mono',Consolas,monospace;font-size:10px;color:var(--dim)}
+footer{text-align:center;padding:24px;color:var(--dim);font-size:11px;border-top:1px solid var(--border)}
 .empty{text-align:center;padding:48px;color:var(--dim);font-size:14px}
-a{color:var(--accent);text-decoration:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle}
 </style>
 </head>
 <body>
-
-<header>
-  <h1>AI Token Proxy</h1>
-  <nav>
-    <a href="/">Home</a>
-    <a href="/pricing">Pricing</a>
-    <a href="/docs">API Docs</a>
-  </nav>
-</header>
-
-<div class="hero">
-  <h2>Model Pricing</h2>
-  <p>Unified pricing across all AI providers. All prices in USD per unit.</p>
-</div>
-
-<div class="container" id="content">
-  <div class="empty">Loading...</div>
-</div>
-
-<footer class="footer">
-  AI Token Proxy &mdash; Unified API Gateway for all LLM providers
-</footer>
-
+<header><a href="/" class="logo">鈿?AI Token Proxy</a><nav><a href="/">棣栭〉</a><a href="/pricing">妯″瀷瀹氫环</a><a href="/login">鐧诲綍</a></nav></header>
+<div class="hero"><h2>鍏ㄩ儴妯″瀷瀹氫环</h2><p>瑕嗙洊 300+ AI 妯″瀷锛屾寜鍘傚晢鍒嗙被灞曠ず锛屼环鏍煎崟浣嶏細缇庡厓 / 1000 tokens</p></div>
+<div class="container" id="content"><div class="empty"><span class="spinner"></span> 鍔犺浇涓?..</div></div>
+<footer>AI Token Proxy 鈥?鑷墭绠?LLM API 鑱氬悎缃戝叧</footer>
 <script>
-async function load(){
-  try{
-    const r=await fetch('/api/public/models');
-    const{models}=await r.json();
-    if(!models.length){document.getElementById('content').innerHTML='<div class="empty">No models configured yet</div>';return}
-    // Group by provider
-    const groups={};
-    models.forEach(m=>{
-      if(!groups[m.provider])groups[m.provider]=[];
-      groups[m.provider].push(m);
-    });
-    let html='';
-    for(const[p,mList]of Object.entries(groups)){
-      html+='<div class="provider-section"><div class="provider-header"><h3>'+p+'</h3><span class="count">'+mList.length+' models</span></div>';
-      html+='<table><thead><tr><th>Model</th><th>Input Price</th><th>Output Price</th><th>Unit</th></tr></thead><tbody>';
-      mList.forEach(m=>{
-        html+=`<tr>
-          <td><strong>${m.display_name}</strong><br><span style="font-size:10px;color:var(--dim)" class="mono">${m.id}</span></td>
-          <td class="price">$${m.input_price} <span>/ ${m.unit_size.toLocaleString()} tokens</span></td>
-          <td class="price">$${m.output_price} <span>/ ${m.unit_size.toLocaleString()} tokens</span></td>
-          <td>${m.unit_size.toLocaleString()} tokens</td>
-        </tr>`;
-      });
-      html+='</tbody></table></div>';
-    }
-    document.getElementById('content').innerHTML=html;
-  }catch(e){
-    document.getElementById('content').innerHTML='<div class="empty">Failed to load pricing: '+e.message+'</div>'
-  }
-}
+async function load(){try{var r=await fetch('/api/public/models');var d=await r.json();if(!d.models||!d.models.length){document.getElementById('content').innerHTML='<div class="empty">鏆傛棤妯″瀷鏁版嵁</div>';return}
+var g={};d.models.forEach(function(m){if(!g[m.provider])g[m.provider]=[];g[m.provider].push(m)});var h='';
+Object.entries(g).forEach(function(e){var p=e[0],ml=e[1];h+='<div class="provider-section"><div class="provider-header"><h3>'+p+'</h3><span class="count">'+ml.length+' 涓ā鍨?/span></div>';h+='<table><thead><tr><th>妯″瀷</th><th>杈撳叆浠锋牸</th><th>杈撳嚭浠锋牸</th><th>鍗曚綅</th></tr></thead><tbody>';ml.forEach(function(m){h+='<tr><td><strong>'+m.display_name+'</strong><br><span class="mono">'+m.id+'</span></td>';h+='<td class="price">$'+m.input_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';h+='<td class="price">$'+m.output_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';h+='<td>'+m.unit_size.toLocaleString()+' tokens</td></tr>'});h+='</tbody></table></div>'});document.getElementById('content').innerHTML=h}catch(e){document.getElementById('content').innerHTML='<div class="empty">鍔犺浇澶辫触</div>'}}
 load();
-</script>
-</body>
-</html>
+</script></body></html>
