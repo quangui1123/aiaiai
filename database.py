@@ -90,7 +90,7 @@ def init_db():
     # Seed providers
     existing = conn.execute("SELECT COUNT(*) FROM providers").fetchone()[0]
     if existing == 0:
-        providers = [
+                providers = [
             ("openai", "OpenAI", "https://api.openai.com/v1"),
             ("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1"),
             ("gemini", "Google Gemini", "https://generativelanguage.googleapis.com/v1beta"),
@@ -118,6 +118,7 @@ def init_db():
             ("fireworks", "Fireworks AI", "https://api.fireworks.ai/inference/v1"),
             ("jina", "Jina AI", "https://api.jina.ai/v1"),
             ("voyage", "Voyage AI", "https://api.voyageai.com/v1"),
+            ("replicate", "Replicate", "https://api.replicate.com/v1"),
         ]
         conn.executemany(
             "INSERT INTO providers (id, name, base_url) VALUES (?, ?, ?)", providers
