@@ -1,225 +1,151 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - AI Token Proxy</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>控制台 — AI Token Proxy</title>
 <style>
+:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--radius:8px;--font:system-ui,-apple-system,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f1117;color:#e1e4e8;min-height:100vh}
-header{background:#161b22;border-bottom:1px solid #30363d;padding:.8rem 1.5rem;display:flex;justify-content:space-between;align-items:center}
-.logo{font-weight:700;font-size:1rem;color:#58a6ff}
-.logo a{color:inherit;text-decoration:none}
-nav{display:flex;gap:1rem;align-items:center}
-nav a{color:#8b949e;font-size:.82rem;text-decoration:none;padding:.3rem .5rem;border-radius:4px;transition:color .2s;cursor:pointer}
-nav a:hover{color:#f0f6fc}
-nav a.active{color:#58a6ff;background:#1f2937}
-.user-info{display:flex;align-items:center;gap:.6rem;font-size:.82rem;color:#8b949e}
-.user-info .name{color:#f0f6fc}
-.logout-btn{background:none;border:1px solid #30363d;color:#f85149;padding:.25rem .6rem;border-radius:4px;cursor:pointer;font-size:.75rem}
-.logout-btn:hover{background:#f8514920}
-main{max-width:960px;margin:0 auto;padding:1.5rem}
-.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem;margin-bottom:1.5rem}
-.card h2{font-size:1rem;font-weight:600;margin-bottom:1rem;color:#f0f6fc}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem}
-.stat{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:1rem;text-align:center}
-.stat .num{font-size:1.6rem;font-weight:700;color:#58a6ff}
-.stat .label{font-size:.75rem;color:#8b949e;margin-top:.2rem}
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-th{text-align:left;padding:.5rem .75rem;color:#8b949e;font-weight:500;border-bottom:1px solid #30363d;font-size:.75rem;text-transform:uppercase}
-td{padding:.6rem .75rem;border-bottom:1px solid #21262d}
-.mono{font-family:'SF Mono',Consolas,monospace;font-size:.78rem;color:#58a6ff}
-code{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:.15rem .35rem;font-size:.75rem;cursor:pointer;color:#7ee787}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:48px}
+.logo{font-weight:700;font-size:14px;color:var(--accent);text-decoration:none}
+nav{display:flex;align-items:center;gap:16px}
+nav a{color:var(--dim);font-size:12px;text-decoration:none;cursor:pointer;transition:color .15s}
+nav a:hover{color:var(--text)}
+.user-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim)}
+.user-bar .name{color:var(--text)}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--red);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+main{max-width:960px;margin:0 auto;padding:24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.stat .num{font-size:24px;font-weight:700;color:var(--accent)}
+.stat .label{font-size:11px;color:var(--dim);margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.card h2{font-size:15px;font-weight:600;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 10px;color:var(--dim);font-weight:500;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+td{padding:8px 10px;border-bottom:1px solid rgba(30,34,51,.5)}
+.mono{font-family:'SF Mono',Consolas,monospace;font-size:11px;color:var(--accent)}
+code{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--green)}
 code:hover{background:#1f2937}
-.badge{padding:.15rem .5rem;border-radius:10px;font-size:.7rem;font-weight:600}
-.badge-green{background:#23863620;color:#3fb950;border:1px solid #23863630}
-.badge-red{background:#f8514920;color:#f85149;border:1px solid #f8514930}
-.badge-gray{background:#30363d40;color:#8b949e}
-.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-size:.8rem;cursor:pointer;transition:all .2s}
-.btn:hover{background:#30363d;color:#f0f6fc}
-.btn-primary{background:#238636;border-color:#238636;color:#fff;font-weight:500}
-.btn-primary:hover{background:#2ea043}
-.btn-danger{color:#f85149;border-color:#f8514930}
-.btn-danger:hover{background:#f8514920;border-color:#f85149}
-.actions{display:flex;gap:.5rem;margin-top:1rem}
-.empty{text-align:center;padding:2rem;color:#484f58;font-size:.85rem}
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#238636;color:#fff;padding:.6rem 1rem;border-radius:6px;font-size:.8rem;z-index:100;animation:slideIn .3s ease}
-.toast.error{background:#da3633}
-@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal{display:none;position:fixed;inset:0;background:#00000080;z-index:50;align-items:center;justify-content:center}
+.badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-green{background:rgba(56,217,169,.12);color:var(--green);border:1px solid rgba(56,217,169,.2)}
+.badge-red{background:rgba(255,107,107,.12);color:var(--red);border:1px solid rgba(255,107,107,.2)}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--font);transition:all .15s;border:1px solid var(--border);background:transparent;color:var(--text)}
+.btn:hover{background:rgba(255,255,255,.04);border-color:var(--accent)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-primary:hover{opacity:.9}
+.btn-danger{color:var(--red);border-color:rgba(255,107,107,.2)}.btn-danger:hover{background:rgba(255,107,107,.08)}
+.empty{text-align:center;padding:32px;color:var(--dim);font-size:13px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;z-index:100;animation:si .3s ease}
+.toast.err{background:var(--red)}
+@keyframes si{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:50;align-items:center;justify-content:center}
 .modal.show{display:flex}
-.modal-content{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem;width:100%;max-width:360px}
-.modal-content input{width:100%;padding:.5rem .75rem;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#f0f6fc;font-size:.85rem;outline:none;margin:.5rem 0}
-.modal-content input:focus{border-color:#58a6ff}
+.modal-content{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:360px}
+.modal-content h3{font-size:14px;margin-bottom:12px}
+.modal-content input{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;margin:6px 0;font-family:var(--font)}
+.modal-content input:focus{border-color:var(--accent)}
+.actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo"><a href="/">⚡ AI Token Proxy</a></div>
-  <nav>
-    <a class="active" id="navDashboard">Dashboard</a>
-    <a onclick="showPwModal()">Change Password</a>
-    <span class="user-info"><span class="name" id="userName">...</span><button class="logout-btn" onclick="logout()">Logout</button></span>
-  </nav>
+<a href="/" class="logo">⚡ AI Token Proxy</a>
+<nav>
+<a href="/pricing">模型定价</a>
+<a onclick="showPwModal()">修改密码</a>
+<span class="user-bar"><span class="name" id="userName">...</span><button class="logout-btn" onclick="logout()">退出</button></span>
+</nav>
 </header>
-
 <main>
-  <!-- Stats -->
-  <div class="stats" id="statsRow">
-    <div class="stat"><div class="num" id="statQuota">-</div><div class="label">Quota Left ($)</div></div>
-    <div class="stat"><div class="num" id="statRequests">-</div><div class="label">Requests</div></div>
-    <div class="stat"><div class="num" id="statTokens">-</div><div class="label">Tokens Used</div></div>
-    <div class="stat"><div class="num" id="statCost">-</div><div class="label">Cost ($)</div></div>
-  </div>
-
-  <!-- Tokens -->
-  <div class="card">
-    <h2>Your API Tokens</h2>
-    <div class="actions" style="margin-top:0;margin-bottom:1rem">
-      <button class="btn btn-primary" onclick="createToken()">+ New Token</button>
-    </div>
-    <div id="tokensTable"><div class="empty">Loading...</div></div>
-  </div>
-
-  <!-- Usage Logs -->
-  <div class="card">
-    <h2>Recent Usage</h2>
-    <div id="logsTable"><div class="empty">Loading...</div></div>
-  </div>
-</main>
-
-<!-- Change Password Modal -->
-<div class="modal" id="pwModal">
-  <div class="modal-content">
-    <h2 style="margin-bottom:1rem">Change Password</h2>
-    <input type="password" id="oldPw" placeholder="Current password">
-    <input type="password" id="newPw" placeholder="New password (min 4 chars)">
-    <div class="actions" style="justify-content:flex-end">
-      <button class="btn" onclick="document.getElementById('pwModal').classList.remove('show')">Cancel</button>
-      <button class="btn btn-primary" onclick="changePassword()">Save</button>
-    </div>
-  </div>
+<div class="stats">
+<div class="stat"><div class="num" id="statQuota">-</div><div class="label">剩余额度 ($)</div></div>
+<div class="stat"><div class="num" id="statRequests">-</div><div class="label">请求次数</div></div>
+<div class="stat"><div class="num" id="statTokens">-</div><div class="label">消耗 Token</div></div>
+<div class="stat"><div class="num" id="statCost">-</div><div class="label">费用 ($)</div></div>
 </div>
 
-<!-- Toast -->
+<div class="card">
+<h2>我的 API Token</h2>
+<div style="margin-bottom:12px"><button class="btn btn-primary" onclick="createToken()">+ 新建 Token</button></div>
+<div id="tokensTable"><div class="empty">加载中...</div></div>
+</div>
+
+<div class="card">
+<h2>最近使用</h2>
+<div id="logsTable"><div class="empty">加载中...</div></div>
+</div>
+</main>
+
+<div class="modal" id="pwModal">
+<div class="modal-content">
+<h3>修改密码</h3>
+<input type="password" id="oldPw" placeholder="当前密码">
+<input type="password" id="newPw" placeholder="新密码（至少4位）">
+<div class="actions"><button class="btn" onclick="closePw()">取消</button><button class="btn btn-primary" onclick="changePassword()">保存</button></div>
+</div>
+</div>
 <div class="toast" id="toast" style="display:none"></div>
 
 <script>
-const JWT = localStorage.getItem('aiaiai_jwt');
-const USER = JSON.parse(localStorage.getItem('aiaiai_user') || '{}');
-const H = { 'Authorization': 'Bearer ' + JWT, 'Content-Type': 'application/json' };
+var JWT=localStorage.getItem('aiaiai_jwt'),USER=JSON.parse(localStorage.getItem('aiaiai_user')||'{}');
+if(!JWT)window.location.href='/login';
+document.getElementById('userName').textContent=USER.name||USER.email;
+var H={'Authorization':'Bearer '+JWT,'Content-Type':'application/json'};
 
-if (!JWT) { window.location.href = '/login'; }
-document.getElementById('userName').textContent = USER.name || USER.email;
+function toast(m,e){var el=document.getElementById('toast');el.textContent=m;el.className='toast'+(e?' err':'');el.style.display='block';setTimeout(function(){el.style.display='none'},2500)}
+function logout(){localStorage.clear();window.location.href='/login'}
+function cp(t){navigator.clipboard.writeText(t).then(function(){toast('已复制')})}
+function showPwModal(){document.getElementById('pwModal').classList.add('show')}
+function closePw(){document.getElementById('pwModal').classList.remove('show')}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
-function toast(msg, isErr) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.className = 'toast' + (isErr ? ' error' : ''); el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 2500);
+async function load(){
+try{
+var r=await fetch('/api/auth/me',{headers:H});
+if(!r.ok){logout();return}
+var me=await r.json(),u=me.user;
+document.getElementById('statQuota').textContent=u.quota<0?'无限':Math.max(0,u.quota-u.used_quota).toFixed(3);
+var tokens=me.tokens||[];
+if(!tokens.length){document.getElementById('tokensTable').innerHTML='<div class="empty">还没有 Token，点击上方按钮创建</div>'}
+else{
+var h='<table><tr><th>名称</th><th>Token</th><th>状态</th><th>创建时间</th><th></th></tr>';
+tokens.forEach(function(t){
+h+='<tr><td>'+esc(t.name)+'</td><td><code onclick="cp(\''+t.token_prefix+'...\')">'+t.token_prefix+'...</code></td>';
+h+='<td>'+(t.enabled?'<span class="badge badge-green">正常</span>':'<span class="badge badge-red">已撤销</span>')+'</td>';
+h+='<td>'+t.created_at+'</td>';
+h+='<td>'+(t.enabled?'<button class="btn btn-danger" style="font-size:10px;padding:2px 8px" onclick="delTk('+t.id+')">撤销</button>':'')+'</td></tr>';
+});
+h+='</table>';document.getElementById('tokensTable').innerHTML=h;
 }
+var ur=await fetch('/api/user/usage',{headers:H});
+if(ur.ok){var uu=await ur.json(),s=uu.stats;
+document.getElementById('statRequests').textContent=s.total_requests;
+document.getElementById('statTokens').textContent=(s.total_tokens||0).toLocaleString();
+document.getElementById('statCost').textContent=(s.total_cost||0).toFixed(4);
+var logs=uu.logs||[];
+if(!logs.length){document.getElementById('logsTable').innerHTML='<div class="empty">暂无使用记录，开始调用 API 吧</div>'}
+else{var lh='<table><tr><th>时间</th><th>模型</th><th>厂商</th><th>Token 数</th><th>费用</th><th>状态</th></tr>';
+logs.forEach(function(l){lh+='<tr><td>'+l.created_at+'</td><td>'+l.model+'</td><td>'+l.provider+'</td><td>'+l.total_tokens.toLocaleString()+'</td><td>$'+l.quota_used.toFixed(5)+'</td><td>'+(l.status==='success'?'<span class="badge badge-green">正常</span>':'<span class="badge badge-red">失败</span>')+'</td></tr>'});
+lh+='</table>';document.getElementById('logsTable').innerHTML=lh}}
+}}catch(e){toast('加载失败',true)}}
 
-function logout() {
-  localStorage.removeItem('aiaiai_jwt');
-  localStorage.removeItem('aiaiai_user');
-  window.location.href = '/login';
-}
+async function createToken(){
+try{var r=await fetch('/api/user/tokens',{method:'POST',headers:H,body:JSON.stringify({name:'新 Token'})});if(!r.ok){toast('创建失败',true);return}
+var d=await r.json();toast('Token 已创建');load()}catch(e){toast('创建失败',true)}}
 
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => toast('Copied!'));
-}
+async function delTk(tid){if(!confirm('确定撤销此 Token？将立即失效。'))return;
+try{await fetch('/api/user/tokens/'+tid,{method:'DELETE',headers:H});toast('已撤销');load()}catch(e){toast('撤销失败',true)}}
 
-async function loadDashboard() {
-  try {
-    const r = await fetch('/api/auth/me', { headers: H });
-    if (!r.ok) { logout(); return; }
-    const me = await r.json();
-    const u = me.user;
-    document.getElementById('statQuota').textContent = u.quota < 0 ? 'Unlimited' : Math.max(0, u.quota - u.used_quota).toFixed(3);
-    
-    // Render tokens
-    const tokens = me.tokens || [];
-    if (tokens.length === 0) {
-      document.getElementById('tokensTable').innerHTML = '<div class="empty">No tokens yet. Create one to start using the API.</div>';
-    } else {
-      let html = '<table><tr><th>Name</th><th>Token</th><th>Status</th><th>Created</th><th></th></tr>';
-      tokens.forEach(t => {
-        html += '<tr><td>'+esc(t.name)+'</td><td><code onclick="copyText(\''+t.token_prefix+'...\')">'+t.token_prefix+'...</code></td>'
-          + '<td>'+(t.enabled?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Revoked</span>')+'</td>'
-          + '<td>'+t.created_at+'</td>'
-          + '<td>'+(t.enabled?'<button class="btn btn-danger" style="font-size:.7rem;padding:.2rem .5rem" onclick="deleteToken('+t.id+')">Revoke</button>':'')+'</td></tr>';
-      });
-      html += '</table>';
-      document.getElementById('tokensTable').innerHTML = html;
-    }
+async function changePassword(){
+var o=document.getElementById('oldPw').value,n=document.getElementById('newPw').value;
+if(n.length<4){toast('新密码至少4位',true);return}
+try{var r=await fetch('/api/auth/password',{method:'PATCH',headers:H,body:JSON.stringify({old_password:o,new_password:n})});if(!r.ok){var e=await r.json();toast(e.detail||'修改失败',true);return}
+toast('密码已修改');closePw();document.getElementById('oldPw').value='';document.getElementById('newPw').value=''}catch(e){toast('修改失败',true)}}
 
-    // Load usage
-    const ur = await fetch('/api/user/usage', { headers: H });
-    if (ur.ok) {
-      const usage = await ur.json();
-      const s = usage.stats;
-      document.getElementById('statRequests').textContent = s.total_requests;
-      document.getElementById('statTokens').textContent = (s.total_tokens || 0).toLocaleString();
-      document.getElementById('statCost').textContent = (s.total_cost || 0).toFixed(4);
-
-      const logs = usage.logs || [];
-      if (logs.length === 0) {
-        document.getElementById('logsTable').innerHTML = '<div class="empty">No usage yet. Start making API calls!</div>';
-      } else {
-        let lh = '<table><tr><th>Time</th><th>Model</th><th>Provider</th><th>Tokens</th><th>Cost</th><th>Status</th></tr>';
-        logs.forEach(l => {
-          lh += '<tr><td>'+l.created_at+'</td><td>'+l.model+'</td><td>'+l.provider+'</td><td>'+l.total_tokens.toLocaleString()+'</td>'
-            + '<td>$'+l.quota_used.toFixed(5)+'</td>'
-            + '<td>'+(l.status==='success'?'<span class="badge badge-green">OK</span>':'<span class="badge badge-red">Error</span>')+'</td></tr>';
-        });
-        lh += '</table>';
-        document.getElementById('logsTable').innerHTML = lh;
-      }
-    }
-  } catch(e) {
-    toast('Failed to load dashboard', true);
-  }
-}
-
-async function createToken() {
-  try {
-    const r = await fetch('/api/user/tokens', { method:'POST', headers: H, body: JSON.stringify({name:'New Token'}) });
-    if (!r.ok) { toast('Failed to create token', true); return; }
-    const data = await r.json();
-    toast('Token created: ' + data.token.token_prefix + '...');
-    loadDashboard();
-  } catch(e) { toast('Failed to create token', true); }
-}
-
-async function deleteToken(tid) {
-  if (!confirm('Revoke this token? It will stop working immediately.')) return;
-  try {
-    await fetch('/api/user/tokens/' + tid, { method:'DELETE', headers: H });
-    toast('Token revoked');
-    loadDashboard();
-  } catch(e) { toast('Failed to revoke', true); }
-}
-
-function showPwModal() { document.getElementById('pwModal').classList.add('show'); }
-async function changePassword() {
-  const oldPw = document.getElementById('oldPw').value;
-  const newPw = document.getElementById('newPw').value;
-  if (newPw.length < 4) { toast('New password too short', true); return; }
-  try {
-    const r = await fetch('/api/auth/password', { method:'PATCH', headers: H, body: JSON.stringify({old_password:oldPw,new_password:newPw}) });
-    if (!r.ok) { const e = await r.json(); toast(e.detail || 'Failed', true); return; }
-    toast('Password changed');
-    document.getElementById('pwModal').classList.remove('show');
-    document.getElementById('oldPw').value = '';
-    document.getElementById('newPw').value = '';
-  } catch(e) { toast('Failed', true); }
-}
-
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-// Close modal on backdrop click
-document.getElementById('pwModal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
-
-loadDashboard();
+document.getElementById('pwModal').addEventListener('click',function(e){if(e.target===this)closePw()});
+load();
 </script>
 </body>
 </html>
