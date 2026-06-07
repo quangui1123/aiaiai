@@ -90,7 +90,7 @@ def init_db():
     # Seed providers
     existing = conn.execute("SELECT COUNT(*) FROM providers").fetchone()[0]
     if existing == 0:
-                providers = [
+        providers = [
             ("openai", "OpenAI", "https://api.openai.com/v1"),
             ("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1"),
             ("gemini", "Google Gemini", "https://generativelanguage.googleapis.com/v1beta"),
@@ -431,9 +431,6 @@ def init_db():
             "INSERT OR REPLACE INTO models (id, provider_id, display_name, input_price, output_price) VALUES (?, ?, ?, ?, ?)",
             models
         )
-    conn.commit()
-    conn.close()
-
 
 # ── User management ─────────────────────────────────
 
