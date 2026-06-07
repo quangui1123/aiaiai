@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>鎺у埗鍙?鈥?AI Token Proxy</title>
+<title>控制台 — AI Token Proxy</title>
 <style>
 :root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--radius:8px;--font:system-ui,-apple-system,sans-serif;--t:all .18s cubic-bezier(.4,0,.2,1)}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -59,38 +59,38 @@ code:hover{background:#1f2937}
 </head>
 <body>
 <header>
-<a href="/" class="logo">鈿?AI Token Proxy</a>
+<a href="/" class="logo">⚡ AI Token Proxy</a>
 <nav>
-<a href="/pricing">妯″瀷瀹氫环</a>
-<a style="cursor:pointer" onclick="showPwModal()">淇敼瀵嗙爜</a>
-<span class="user-bar"><span class="name" id="userName">...</span><button class="btn-logout" onclick="logout()">閫€鍑?/button></span>
+<a href="/pricing">模型定价</a>
+<a style="cursor:pointer" onclick="showPwModal()">修改密码</a>
+<span class="user-bar"><span class="name" id="userName">...</span><button class="btn-logout" onclick="logout()">退出</button></span>
 </nav>
 </header>
 <main>
 <div class="stats">
-<div class="stat"><div class="num" id="statQuota">-</div><div class="label">鍓╀綑棰濆害 ($)</div></div>
-<div class="stat"><div class="num" id="statRequests">-</div><div class="label">璇锋眰娆℃暟</div></div>
-<div class="stat"><div class="num" id="statTokens">-</div><div class="label">娑堣€?Token</div></div>
-<div class="stat"><div class="num" id="statCost">-</div><div class="label">璐圭敤 ($)</div></div>
+<div class="stat"><div class="num" id="statQuota">-</div><div class="label">剩余额度 ($)</div></div>
+<div class="stat"><div class="num" id="statRequests">-</div><div class="label">请求次数</div></div>
+<div class="stat"><div class="num" id="statTokens">-</div><div class="label">消耗 Token</div></div>
+<div class="stat"><div class="num" id="statCost">-</div><div class="label">费用 ($)</div></div>
 </div>
 
 <div class="card">
-<h2>鎴戠殑 API 浠ょ墝</h2>
-<div style="margin-bottom:12px"><button class="btn btn-p" onclick="createToken()">+ 鏂板缓浠ょ墝</button></div>
-<div id="tokensTable"><div class="empty"><span class="spinner"></span> 鍔犺浇涓?..</div></div>
+<h2>我的 API 令牌</h2>
+<div style="margin-bottom:12px"><button class="btn btn-p" onclick="createToken()">+ 新建令牌</button></div>
+<div id="tokensTable"><div class="empty"><span class="spinner"></span> 加载中...</div></div>
 </div>
 
 <div class="card">
-<h2>鏈€杩戜娇鐢ㄨ褰?/h2>
-<div id="logsTable"><div class="empty"><span class="spinner"></span> 鍔犺浇涓?..</div></div>
+<h2>最近使用记录</h2>
+<div id="logsTable"><div class="empty"><span class="spinner"></span> 加载中...</div></div>
 </div>
 </main>
 
 <div class="modal" id="pwModal"><div class="modal-box">
-<h3>淇敼瀵嗙爜</h3>
-<input type="password" id="oldPw" placeholder="褰撳墠瀵嗙爜">
-<input type="password" id="newPw" placeholder="鏂板瘑鐮侊紙鑷冲皯4浣嶏級">
-<div class="actions"><button class="btn" onclick="closePw()">鍙栨秷</button><button class="btn btn-p" onclick="changePassword()">淇濆瓨</button></div>
+<h3>修改密码</h3>
+<input type="password" id="oldPw" placeholder="当前密码">
+<input type="password" id="newPw" placeholder="新密码（至少4位）">
+<div class="actions"><button class="btn" onclick="closePw()">取消</button><button class="btn btn-p" onclick="changePassword()">保存</button></div>
 </div></div>
 
 <script>
@@ -101,7 +101,7 @@ var H={'Authorization':'Bearer '+JWT,'Content-Type':'application/json'};
 
 function toast(m,e){var el=document.createElement('div');el.className='toast'+(e?' err':'');el.textContent=m;document.body.appendChild(el);setTimeout(function(){el.remove()},2400)}
 function logout(){localStorage.clear();window.location.href='/login'}
-function cp(t){navigator.clipboard.writeText(t).then(function(){toast('宸插鍒跺埌鍓创鏉?)})}
+function cp(t){navigator.clipboard.writeText(t).then(function(){toast('已复制到剪贴板')})}
 function showPwModal(){document.getElementById('pwModal').classList.add('show')}
 function closePw(){document.getElementById('pwModal').classList.remove('show');document.getElementById('oldPw').value='';document.getElementById('newPw').value=''}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
@@ -110,21 +110,21 @@ async function load(){
 try{
 var r=await fetch('/api/auth/me',{headers:H});if(!r.ok){logout();return}
 var me=await r.json(),u=me.user;
-document.getElementById('statQuota').textContent=u.quota<0?'鏃犻檺':Math.max(0,u.quota-u.used_quota).toFixed(3);
+document.getElementById('statQuota').textContent=u.quota<0?'无限':Math.max(0,u.quota-u.used_quota).toFixed(3);
 var tokens=me.tokens||[];
-if(!tokens.length){document.getElementById('tokensTable').innerHTML='<div class="empty">杩樻病鏈変护鐗岋紝鐐瑰嚮涓婃柟鎸夐挳鍒涘缓</div>'}
+if(!tokens.length){document.getElementById('tokensTable').innerHTML='<div class="empty">还没有令牌，点击上方按钮创建</div>'}
 else{
-var h='<table><tr><th>鍚嶇О</th><th>浠ょ墝</th><th>鐘舵€?/th><th>鍒涘缓鏃堕棿</th><th>鎿嶄綔</th></tr>';
-tokens.forEach(function(t){h+='<tr><td>'+esc(t.name)+'</td><td><code onclick="cp(\''+t.token_prefix+'...\')">'+t.token_prefix+'...</code></td>';h+='<td>'+(t.enabled?'<span class="badge badge-ok">姝ｅ父</span>':'<span class="badge badge-err">宸叉挙閿€</span>')+'</td>';h+='<td style="font-size:11px;color:var(--dim)">'+t.created_at+'</td>';h+='<td>'+(t.enabled?'<button class="btn btn-d" style="font-size:10px;padding:2px 8px" onclick="delTk('+t.id+')">鎾ら攢</button>':'')+'</td></tr>'});h+='</table>';document.getElementById('tokensTable').innerHTML=h}
+var h='<table><tr><th>名称</th><th>令牌</th><th>状态</th><th>创建时间</th><th>操作</th></tr>';
+tokens.forEach(function(t){h+='<tr><td>'+esc(t.name)+'</td><td><code onclick="cp(\''+t.token_prefix+'...\')">'+t.token_prefix+'...</code></td>';h+='<td>'+(t.enabled?'<span class="badge badge-ok">正常</span>':'<span class="badge badge-err">已撤销</span>')+'</td>';h+='<td style="font-size:11px;color:var(--dim)">'+t.created_at+'</td>';h+='<td>'+(t.enabled?'<button class="btn btn-d" style="font-size:10px;padding:2px 8px" onclick="delTk('+t.id+')">撤销</button>':'')+'</td></tr>'});h+='</table>';document.getElementById('tokensTable').innerHTML=h}
 var ur=await fetch('/api/user/usage',{headers:H});if(ur.ok){var uu=await ur.json(),s=uu.stats;
 document.getElementById('statRequests').textContent=s.total_requests;document.getElementById('statTokens').textContent=(s.total_tokens||0).toLocaleString();document.getElementById('statCost').textContent=(s.total_cost||0).toFixed(4);
-var logs=uu.logs||[];if(!logs.length){document.getElementById('logsTable').innerHTML='<div class="empty">鏆傛棤浣跨敤璁板綍锛屽紑濮嬭皟鐢?API 鍚?/div>'}
-else{var lh='<table><tr><th>鏃堕棿</th><th>妯″瀷</th><th>鍘傚晢</th><th>Token鏁?/th><th>璐圭敤</th><th>鐘舵€?/th></tr>';logs.forEach(function(l){lh+='<tr><td style="font-size:11px;color:var(--dim)">'+l.created_at+'</td><td>'+l.model+'</td><td>'+l.provider+'</td><td>'+l.total_tokens.toLocaleString()+'</td><td>$'+l.quota_used.toFixed(5)+'</td><td>'+(l.status==='success'?'<span class="badge badge-ok">鎴愬姛</span>':'<span class="badge badge-err">澶辫触</span>')+'</td></tr>'});lh+='</table>';document.getElementById('logsTable').innerHTML=lh}}}
-}catch(e){toast('鍔犺浇澶辫触锛岃鍒锋柊閲嶈瘯',true)}}
+var logs=uu.logs||[];if(!logs.length){document.getElementById('logsTable').innerHTML='<div class="empty">暂无使用记录，开始调用 API 吧</div>'}
+else{var lh='<table><tr><th>时间</th><th>模型</th><th>厂商</th><th>Token数</th><th>费用</th><th>状态</th></tr>';logs.forEach(function(l){lh+='<tr><td style="font-size:11px;color:var(--dim)">'+l.created_at+'</td><td>'+l.model+'</td><td>'+l.provider+'</td><td>'+l.total_tokens.toLocaleString()+'</td><td>$'+l.quota_used.toFixed(5)+'</td><td>'+(l.status==='success'?'<span class="badge badge-ok">成功</span>':'<span class="badge badge-err">失败</span>')+'</td></tr>'});lh+='</table>';document.getElementById('logsTable').innerHTML=lh}}}
+}catch(e){toast('加载失败，请刷新重试',true)}}
 
-async function createToken(){try{var r=await fetch('/api/user/tokens',{method:'POST',headers:H,body:JSON.stringify({name:'鏂板缓浠ょ墝'})});if(!r.ok){toast('鍒涘缓澶辫触',true);return}var d=await r.json();toast('浠ょ墝宸插垱寤? '+d.token.token_prefix+'...');load()}catch(e){toast('鍒涘缓澶辫触',true)}}
-async function delTk(tid){if(!confirm('纭畾鎾ら攢姝や护鐗岋紵灏嗙珛鍗冲け鏁堛€?))return;try{await fetch('/api/user/tokens/'+tid,{method:'DELETE',headers:H});toast('浠ょ墝宸叉挙閿€');load()}catch(e){toast('鎾ら攢澶辫触',true)}}
-async function changePassword(){var o=document.getElementById('oldPw').value,n=document.getElementById('newPw').value;if(n.length<4){toast('鏂板瘑鐮佽嚦灏?浣?,true);return}try{var r=await fetch('/api/auth/password',{method:'PATCH',headers:H,body:JSON.stringify({old_password:o,new_password:n})});if(!r.ok){var e=await r.json();toast(e.detail||'淇敼澶辫触',true);return}toast('瀵嗙爜宸蹭慨鏀?);closePw()}catch(e){toast('淇敼澶辫触',true)}}
+async function createToken(){try{var r=await fetch('/api/user/tokens',{method:'POST',headers:H,body:JSON.stringify({name:'新建令牌'})});if(!r.ok){toast('创建失败',true);return}var d=await r.json();toast('令牌已创建: '+d.token.token_prefix+'...');load()}catch(e){toast('创建失败',true)}}
+async function delTk(tid){if(!confirm('确定撤销此令牌？将立即失效。'))return;try{await fetch('/api/user/tokens/'+tid,{method:'DELETE',headers:H});toast('令牌已撤销');load()}catch(e){toast('撤销失败',true)}}
+async function changePassword(){var o=document.getElementById('oldPw').value,n=document.getElementById('newPw').value;if(n.length<4){toast('新密码至少4位',true);return}try{var r=await fetch('/api/auth/password',{method:'PATCH',headers:H,body:JSON.stringify({old_password:o,new_password:n})});if(!r.ok){var e=await r.json();toast(e.detail||'修改失败',true);return}toast('密码已修改');closePw()}catch(e){toast('修改失败',true)}}
 document.getElementById('pwModal').addEventListener('click',function(e){if(e.target===this)closePw()});
 load();
 </script></body></html>
