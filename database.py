@@ -392,7 +392,6 @@ def init_db():
             ("qwen/qwen2.5-72b", "openrouter", "Qwen2.5 72B (OR)", 0.0005, 0.002),
             ("qwen/qwen2.5-32b", "openrouter", "Qwen2.5 32B (OR)", 0.0003, 0.0009),
             ("nousresearch/hermes-3-llama-3.1-405b", "openrouter", "Hermes 3 405B", 0.003, 0.003),
-            ("doubao-1.5-pro-256k", "doubao", "豆包 1.5 Pro 256K", 0.005, 0.009),
             ("doubao-1.5-thinking-pro", "doubao", "豆包 1.5 Thinking Pro", 0.001, 0.004),
             ("doubao-function-call", "doubao", "豆包 Function Call", 0.0008, 0.002),
             ("seed-tts", "doubao", "SeedTTS", 0.005, 0),
@@ -428,7 +427,7 @@ def init_db():
             ("ernie-4.0-8k", "baidu", "ERNIE 4.0 8K", 0.012, 0.012),
         ]
         conn.executemany(
-            "INSERT INTO models (id, provider_id, display_name, input_price, output_price) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO models (id, provider_id, display_name, input_price, output_price) VALUES (?, ?, ?, ?, ?)",
             models
         )
     conn.commit()
