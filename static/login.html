@@ -3,60 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>登录 — AI Token Proxy</title>
+<title>鐧诲綍 鈥?AI Token Proxy</title>
 <style>
-:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--radius:8px;--font:system-ui,-apple-system,sans-serif}
+:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--radius:10px;--font:system-ui,-apple-system,sans-serif;--t:all .2s cubic-bezier(.4,0,.2,1)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
-.container{width:100%;max-width:400px;padding:24px}
+.container{width:100%;max-width:400px;padding:24px;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.logo{font-weight:700;font-size:16px;color:var(--accent);text-decoration:none}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px}
-.card h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.logo{font-weight:700;font-size:16px;color:var(--accent);text-decoration:none;transition:var(--t)}
+.logo:hover{opacity:.8}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;transition:var(--t)}
+.card:hover{border-color:rgba(92,124,250,.3)}
+.card h1{font-size:20px;font-weight:700;margin-bottom:4px}
 .card .sub{color:var(--dim);font-size:13px;margin-bottom:22px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
-.field input{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s}
-.field input:focus{border-color:var(--accent)}
-.btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;background:var(--accent);color:#fff}
-.btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:not-allowed}
-.msg{padding:9px 12px;border-radius:6px;font-size:12px;margin-bottom:14px;display:none}
-.msg.show{display:block}
-.msg-err{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--red)}
-.msg-ok{background:rgba(56,217,169,.08);border:1px solid rgba(56,217,169,.2);color:var(--green)}
-.switch{text-align:center;margin-top:16px;font-size:13px;color:var(--dim)}
-.switch a{color:var(--accent);cursor:pointer;text-decoration:none}.switch a:hover{text-decoration:underline}
+.field input{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:var(--t)}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,124,250,.12)}
+.btn{width:100%;padding:11px;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:var(--t);background:var(--accent);color:#fff}
+.btn:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 12px rgba(92,124,250,.25)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.msg{padding:10px 12px;border-radius:7px;font-size:12px;margin-bottom:14px;display:none;animation:fadeUp .2s ease}
+.msg.show{display:block}.msg-err{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--red)}.msg-ok{background:rgba(56,217,169,.08);border:1px solid rgba(56,217,169,.2);color:var(--green)}
+.switch{text-align:center;margin-top:16px;font-size:13px;color:var(--dim)}.switch a{color:var(--accent);cursor:pointer;text-decoration:none;transition:var(--t)}.switch a:hover{text-decoration:underline}
 .hidden{display:none!important}
-.footer{text-align:center;margin-top:20px;font-size:12px;color:var(--dim)}
-.footer a{color:var(--accent);text-decoration:none}
+.footer{text-align:center;margin-top:20px;font-size:12px;color:var(--dim)}.footer a{color:var(--accent);text-decoration:none;transition:var(--t)}.footer a:hover{color:var(--text)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
 </style>
 </head>
 <body>
 <div class="container">
-<div class="top"><a href="/" class="logo">⚡ AI Token Proxy</a></div>
-
+<div class="top"><a href="/" class="logo">鈿?AI Token Proxy</a></div>
 <div class="msg msg-err" id="msgErr"></div>
 <div class="msg msg-ok" id="msgOk"></div>
 
 <div class="card" id="fLogin">
-<h1>登录</h1>
-<p class="sub">使用邮箱登录你的账户</p>
-<div class="field"><label>邮箱</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label>密码</label><input type="password" id="loginPassword" placeholder="········" autocomplete="current-password"></div>
-<button class="btn" onclick="doLogin()" id="loginBtn">登录</button>
-<div class="switch">还没有账户？<a onclick="show('register')">注册一个</a></div>
+<h1>鐧诲綍</h1><p class="sub">浣跨敤閭鐧诲綍浣犵殑璐︽埛</p>
+<div class="field"><label>閭</label><input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"></div>
+<div class="field"><label>瀵嗙爜</label><input type="password" id="loginPassword" placeholder="路路路路路路路路" autocomplete="current-password"></div>
+<button class="btn" onclick="doLogin()" id="loginBtn">鐧诲綍</button>
+<div class="switch">杩樻病鏈夎处鎴凤紵<a onclick="show('register')">娉ㄥ唽涓€涓?/a></div>
 </div>
 
 <div class="card hidden" id="fRegister">
-<h1>创建账户</h1>
-<p class="sub">注册即可获取 API Token</p>
-<div class="field"><label>邮箱</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label>密码</label><input type="password" id="regPassword" placeholder="至少 4 位" autocomplete="new-password"></div>
-<button class="btn" onclick="doRegister()" id="regBtn">创建账户</button>
-<div class="switch">已有账户？<a onclick="show('login')">登录</a></div>
+<h1>鍒涘缓璐︽埛</h1><p class="sub">娉ㄥ唽鍗冲彲鑾峰彇 API 浠ょ墝</p>
+<div class="field"><label>閭</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
+<div class="field"><label>瀵嗙爜</label><input type="password" id="regPassword" placeholder="鑷冲皯 4 浣? autocomplete="new-password"></div>
+<button class="btn" onclick="doRegister()" id="regBtn">鍒涘缓璐︽埛</button>
+<div class="switch">宸叉湁璐︽埛锛?a onclick="show('login')">鐧诲綍</a></div>
 </div>
-
-<div class="footer"><a href="/">首页</a> · <a href="/pricing">模型定价</a></div>
+<div class="footer"><a href="/">棣栭〉</a> 路 <a href="/pricing">妯″瀷瀹氫环</a></div>
 </div>
 
 <script>
@@ -70,23 +68,21 @@ if(JWT){fetch('/api/auth/me',{headers:{Authorization:'Bearer '+JWT}}).then(funct
 
 async function doLogin(){
 hideMsgs();var email=document.getElementById('loginEmail').value.trim(),pw=document.getElementById('loginPassword').value;
-if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
-var btn=document.getElementById('loginBtn');btn.disabled=true;btn.textContent='登录中...';
+if(!email.includes('@')){err('璇疯緭鍏ユ湁鏁堥偖绠?);return}if(pw.length<4){err('瀵嗙爜鑷冲皯4浣?);return}
+var btn=document.getElementById('loginBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>鐧诲綍涓?..';
 try{var r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw})});var d=await r.json();
-if(!r.ok){err('邮箱或密码错误');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('登录成功！');
-setTimeout(function(){window.location.href=d.user.is_admin?'/admin':'/dashboard'},600)}catch(e){err('登录失败')}
-finally{btn.disabled=false;btn.textContent='登录'}}
+if(!r.ok){err('閭鎴栧瘑鐮侀敊璇?);return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('鐧诲綍鎴愬姛锛?);
+setTimeout(function(){window.location.href=d.user.is_admin?'/admin':'/dashboard'},600)}catch(e){err('鐧诲綍澶辫触锛岃閲嶈瘯')}
+finally{btn.disabled=false;btn.textContent='鐧诲綍'}}
 
 async function doRegister(){
 hideMsgs();var email=document.getElementById('regEmail').value.trim(),pw=document.getElementById('regPassword').value;
-if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
-var btn=document.getElementById('regBtn');btn.disabled=true;btn.textContent='注册中...';
+if(!email.includes('@')){err('璇疯緭鍏ユ湁鏁堥偖绠?);return}if(pw.length<4){err('瀵嗙爜鑷冲皯4浣?);return}
+var btn=document.getElementById('regBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>娉ㄥ唽涓?..';
 try{var r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,name:email.split('@')[0]})});var d=await r.json();
-if(!r.ok){err('注册失败，邮箱可能已被使用');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('注册成功！');
-setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('注册失败')}
-finally{btn.disabled=false;btn.textContent='创建账户'}}
+if(!r.ok){err('娉ㄥ唽澶辫触锛岄偖绠卞彲鑳藉凡琚娇鐢?);return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('娉ㄥ唽鎴愬姛锛?);
+setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('娉ㄥ唽澶辫触锛岃閲嶈瘯')}
+finally{btn.disabled=false;btn.textContent='鍒涘缓璐︽埛'}}
 
 document.addEventListener('keydown',function(e){if(e.key==='Enter'){if(document.getElementById('fRegister').classList.contains('hidden'))doLogin();else doRegister()}});
-</script>
-</body>
-</html>
+</script></body></html>
