@@ -1,4 +1,4 @@
-﻿import os, uuid, time, httpx, jwt
+import os, uuid, time, httpx, jwt
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
@@ -63,15 +63,22 @@ def decode_jwt(token: str) -> dict | None:
 async def lifespan(app: FastAPI):
     init_db()
     # Ensure admin user exists
-    admin = get_user_by_email(ADMIN_EMAIL)
-    if not admin:
-        create_user(
-            email=ADMIN_EMAIL,
-            password=ADMIN_PASSWORD,
-            name="Admin",
-            is_admin=True,
-            quota=-1  # unlimited
-        )
+    for i in range(5):
+        admin = get_user_by_email(ADMIN_EMAIL)
+        if admin:
+            break
+        try:
+            create_user(
+                email=ADMIN_EMAIL,
+                password=ADMIN_PASSWORD,
+                name="Admin",
+                is_admin=True,
+                quota=-1  # unlimited
+            )
+            break
+        except Exception:
+            import time
+            time.sleep(0.5)
     yield
 
 
@@ -571,3 +578,4 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host=HOST, port=PORT)
+
