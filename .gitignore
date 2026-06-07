@@ -1,0 +1,21 @@
+# .gitignore
+__pycache__/
+*.pyc
+data/*.db
+data/
+.env
+*.zip
+*.exe
+tools/
+python/
+work/
+outputs/
+*.txt
+!requirements.txt
+*.bat
+!start.bat
+cloudflared*
+cf_*
+public_url.txt
+ngrok*
+tunnel*
