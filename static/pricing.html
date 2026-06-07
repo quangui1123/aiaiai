@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>妯″瀷瀹氫环 鈥?AI Token Proxy</title>
+<title>模型定价 — AI Token Proxy</title>
 <style>
 :root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--radius:8px;--font:system-ui,-apple-system,sans-serif;--t:all .18s cubic-bezier(.4,0,.2,1)}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -35,13 +35,13 @@ footer{text-align:center;padding:24px;color:var(--dim);font-size:11px;border-top
 </style>
 </head>
 <body>
-<header><a href="/" class="logo">鈿?AI Token Proxy</a><nav><a href="/">棣栭〉</a><a href="/pricing">妯″瀷瀹氫环</a><a href="/login">鐧诲綍</a></nav></header>
-<div class="hero"><h2>鍏ㄩ儴妯″瀷瀹氫环</h2><p>瑕嗙洊 300+ AI 妯″瀷锛屾寜鍘傚晢鍒嗙被灞曠ず锛屼环鏍煎崟浣嶏細缇庡厓 / 1000 tokens</p></div>
-<div class="container" id="content"><div class="empty"><span class="spinner"></span> 鍔犺浇涓?..</div></div>
-<footer>AI Token Proxy 鈥?鑷墭绠?LLM API 鑱氬悎缃戝叧</footer>
+<header><a href="/" class="logo">⚡ AI Token Proxy</a><nav><a href="/">首页</a><a href="/pricing">模型定价</a><a href="/login">登录</a></nav></header>
+<div class="hero"><h2>全部模型定价</h2><p>覆盖 300+ AI 模型，按厂商分类展示，价格单位：美元 / 1000 tokens</p></div>
+<div class="container" id="content"><div class="empty"><span class="spinner"></span> 加载中...</div></div>
+<footer>AI Token Proxy — 自托管 LLM API 聚合网关</footer>
 <script>
-async function load(){try{var r=await fetch('/api/public/models');var d=await r.json();if(!d.models||!d.models.length){document.getElementById('content').innerHTML='<div class="empty">鏆傛棤妯″瀷鏁版嵁</div>';return}
+async function load(){try{var r=await fetch('/api/public/models');var d=await r.json();if(!d.models||!d.models.length){document.getElementById('content').innerHTML='<div class="empty">暂无模型数据</div>';return}
 var g={};d.models.forEach(function(m){if(!g[m.provider])g[m.provider]=[];g[m.provider].push(m)});var h='';
-Object.entries(g).forEach(function(e){var p=e[0],ml=e[1];h+='<div class="provider-section"><div class="provider-header"><h3>'+p+'</h3><span class="count">'+ml.length+' 涓ā鍨?/span></div>';h+='<table><thead><tr><th>妯″瀷</th><th>杈撳叆浠锋牸</th><th>杈撳嚭浠锋牸</th><th>鍗曚綅</th></tr></thead><tbody>';ml.forEach(function(m){h+='<tr><td><strong>'+m.display_name+'</strong><br><span class="mono">'+m.id+'</span></td>';h+='<td class="price">$'+m.input_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';h+='<td class="price">$'+m.output_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';h+='<td>'+m.unit_size.toLocaleString()+' tokens</td></tr>'});h+='</tbody></table></div>'});document.getElementById('content').innerHTML=h}catch(e){document.getElementById('content').innerHTML='<div class="empty">鍔犺浇澶辫触</div>'}}
+Object.entries(g).forEach(function(e){var p=e[0],ml=e[1];h+='<div class="provider-section"><div class="provider-header"><h3>'+p+'</h3><span class="count">'+ml.length+' 个模型</span></div>';h+='<table><thead><tr><th>模型</th><th>输入价格</th><th>输出价格</th><th>单位</th></tr></thead><tbody>';ml.forEach(function(m){h+='<tr><td><strong>'+m.display_name+'</strong><br><span class="mono">'+m.id+'</span></td>';h+='<td class="price">$'+m.input_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';h+='<td class="price">$'+m.output_price+' / '+m.unit_size.toLocaleString()+' tokens</td>';h+='<td>'+m.unit_size.toLocaleString()+' tokens</td></tr>'});h+='</tbody></table></div>'});document.getElementById('content').innerHTML=h}catch(e){document.getElementById('content').innerHTML='<div class="empty">加载失败</div>'}}
 load();
 </script></body></html>
