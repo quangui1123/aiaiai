@@ -1,362 +1,157 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Token Proxy - Admin</title>
+<title>绠＄悊鍚庡彴 鈥?AI Token Proxy</title>
 <style>
-:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--yellow:#fcc419;--radius:6px;--font:system-ui,-apple-system,sans-serif}
+:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--yellow:#fcc419;--radius:8px;--font:system-ui,-apple-system,sans-serif;--transition:all .18s cubic-bezier(.4,0,.2,1)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
 .sidebar{width:200px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;flex-shrink:0}
-.sidebar h1{font-size:14px;padding:0 16px 20px;color:var(--accent);font-weight:600}
-.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;color:var(--dim);cursor:pointer;font-size:13px;border:none;background:none;width:100%;text-align:left;transition:all .12s}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
-.nav-item.active{color:var(--text);background:rgba(92,124,250,.08);border-right:2px solid var(--accent)}
-.main{flex:1;overflow-y:auto;padding:28px}
-.section-title{font-size:13px;color:var(--dim);margin-bottom:16px;font-weight:500}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.sidebar h1{font-size:14px;padding:0 16px 20px;color:var(--accent);font-weight:700}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;color:var(--dim);cursor:pointer;font-size:13px;border:none;background:none;width:100%;text-align:left;transition:var(--transition)}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);transform:translateX(3px)}
+.nav-item.active{color:var(--text);background:rgba(92,124,250,.08);border-right:3px solid var(--accent)}
+.logout-btn{margin-top:auto;padding:10px 16px;border-top:1px solid var(--border);color:var(--dim);cursor:pointer;font-size:12px;transition:var(--transition)}
+.logout-btn:hover{color:var(--red)}
+.main{flex:1;overflow-y:auto;padding:24px 28px}
+.section-title{font-size:13px;color:var(--dim);margin-bottom:14px;font-weight:500}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;transition:var(--transition)}
+.card:hover{border-color:rgba(92,124,250,.25)}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:20px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
-.stat-card .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
-.stat-card .v{font-size:22px;font-weight:600}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;transition:var(--transition)}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.stat-card .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-card .v{font-size:22px;font-weight:700;transition:var(--transition)}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
-th{font-weight:500;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.3px}
-td{color:var(--text)}
-tr:hover td{background:rgba(255,255,255,.015)}
-.form-row{display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap}
+th{font-weight:500;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+td{color:var(--text);transition:background .12s}tr:hover td{background:rgba(255,255,255,.015)}
+.form-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-end;flex-wrap:wrap}
 .form-g{display:flex;flex-direction:column;gap:3px}
-.form-g label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px}
-input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:var(--radius);font-size:12px;font-family:var(--font);outline:none}
-input:focus,select:focus{border-color:var(--accent)}
-.btn{padding:6px 13px;border-radius:var(--radius);font-size:12px;cursor:pointer;border:1px solid var(--border);font-family:var(--font);transition:all .12s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:transparent;color:var(--text)}
-.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}
-.btn-p:hover{opacity:.88}
-.btn-d{color:var(--red);border-color:var(--red)}
-.btn-d:hover{background:rgba(255,107,107,.08)}
+.form-g label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
+input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;font-family:var(--font);outline:none;transition:var(--transition)}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(92,124,250,.15)}
+.btn{padding:6px 13px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);font-family:var(--font);transition:var(--transition);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:transparent;color:var(--text)}
+.btn:hover{transform:translateY(-1px)}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-p:hover{opacity:.88;box-shadow:0 2px 8px rgba(92,124,250,.3)}
+.btn-d{color:var(--red);border-color:rgba(255,107,107,.3)}.btn-d:hover{background:rgba(255,107,107,.08)}
 .btn-sm{font-size:10px;padding:3px 8px}
 .mono{font-family:'SF Mono',Consolas,monospace;font-size:11px;color:var(--accent)}
-.badge{padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500}
-.bg{background:rgba(56,217,169,.12);color:var(--green)}
-.br{background:rgba(255,107,107,.12);color:var(--red)}
-.by{background:rgba(252,196,25,.12);color:var(--yellow)}
-.mt2{margin-top:12px}
-.mt3{margin-top:18px}
-.mb2{margin-bottom:12px}
-.fb{display:flex;justify-content:space-between;align-items:center}
-.empty{padding:30px;text-align:center;color:var(--dim);font-size:12px}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:calc(var(--radius)*1.5);padding:24px;width:90%;max-width:420px}
-.modal h3{font-size:14px;margin-bottom:12px}
-.logout-top{padding:9px 16px;margin-top:auto;color:var(--dim);cursor:pointer;font-size:12px;border-top:1px solid var(--border)}
-.logout-top:hover{color:var(--red)}
+.badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.bg{background:rgba(56,217,169,.12);color:var(--green)}.br{background:rgba(255,107,107,.12);color:var(--red)}.by{background:rgba(252,196,25,.12);color:var(--yellow)}
+.mt2{margin-top:12px}.mt3{margin-top:18px}.mb2{margin-bottom:12px}
+.fb{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.empty{padding:32px;text-align:center;color:var(--dim);font-size:13px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.page-enter{animation:fadeUp .3s ease}
+.loading-spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;animation:fadeUp .15s ease}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:90%;max-width:420px;animation:fadeUp .2s ease}
+.modal h3{font-size:14px;margin-bottom:14px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--accent);color:#fff;padding:10px 18px;border-radius:6px;font-size:12px;z-index:200;animation:fadeUp .25s ease}
 </style>
 </head>
 <body>
 <div class="sidebar">
-  <h1>⚡ Admin Panel</h1>
-  <button class="nav-item active" data-p="dashboard">Dashboard</button>
-  <button class="nav-item" data-p="users">Users</button>
-  <button class="nav-item" data-p="channels">Channels</button>
-  <button class="nav-item" data-p="tokens">Tokens</button>
-  <button class="nav-item" data-p="models">Pricing</button>
-  <button class="nav-item" data-p="logs">Logs</button>
-  <button class="logout-top" onclick="logout()">Logout</button>
+<h1>鈿?绠＄悊鍚庡彴</h1>
+<button class="nav-item active" data-p="姒傝">馃搳 姒傝</button>
+<button class="nav-item" data-p="鐢ㄦ埛">馃懃 鐢ㄦ埛绠＄悊</button>
+<button class="nav-item" data-p="娓犻亾">馃攽 娓犻亾绠＄悊</button>
+<button class="nav-item" data-p="浠ょ墝">馃帿 浠ょ墝绠＄悊</button>
+<button class="nav-item" data-p="瀹氫环">馃挵 妯″瀷瀹氫环</button>
+<button class="nav-item" data-p="鏃ュ織">馃搵 浣跨敤鏃ュ織</button>
+<div class="logout-btn" onclick="logout()">閫€鍑虹櫥褰?/div>
 </div>
 <main class="main" id="main"></main>
+
 <script>
-const JWT = localStorage.getItem('aiaiai_jwt');
-const USER = JSON.parse(localStorage.getItem('aiaiai_user')||'{}');
-if (!JWT || !USER.is_admin) { window.location.href = '/login'; }
+var JWT=localStorage.getItem('aiaiai_jwt'),USER=JSON.parse(localStorage.getItem('aiaiai_user')||'{}');
+if(!JWT||!USER.is_admin)window.location.href='/login';
+var H={'Authorization':'Bearer '+JWT},page='姒傝';
 
-const H = { 'Authorization': 'Bearer ' + JWT };
-let page = 'dashboard';
+function API(p,o){return fetch(p,{...o||{},headers:{...H,...(o&&o.headers||{})}})}
+function nav(p){page=p;document.querySelectorAll('.nav-item').forEach(function(e){e.classList.toggle('active',e.dataset.p===p)});render()}
+function cp(t){navigator.clipboard.writeText(t)}
+function toast(m){var d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2200)}
+function modal(t,b,ok,cb){var e=document.createElement('div');e.className='modal-overlay';e.innerHTML='<div class="modal"><h3>'+t+'</h3>'+b+'<div class="fb mt3"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">鍙栨秷</button><button class="btn btn-p" id="okbtn">'+ok+'</button></div></div>';document.body.appendChild(e);e.querySelector('#okbtn').onclick=async function(){try{await cb(e)}catch(err){alert(err)}e.remove()};e.querySelector('input')&&e.querySelector('input').focus()}
+function logout(){localStorage.clear();window.location.href='/login'}
 
-function API(path, opts={}) {
-  return fetch(path, { ...opts, headers: { ...H, ...(opts.headers||{}) } });
+document.querySelectorAll('.nav-item').forEach(function(e){e.addEventListener('click',function(){nav(e.dataset.p)})});
+
+async function render(){
+var o=document.getElementById('main');o.innerHTML='<div class="empty"><span class="loading-spinner"></span> 鍔犺浇涓?..</div>';
+try{
+switch(page){
+case '姒傝':return renderDash(o);
+case '鐢ㄦ埛':return renderUsers(o);
+case '娓犻亾':return renderChannels(o);
+case '浠ょ墝':return renderTokens(o);
+case '瀹氫环':return renderModels(o);
+case '鏃ュ織':return renderLogs(o);
+}
+}catch(e){o.innerHTML='<div class="empty" style="color:var(--red)">閿欒: '+e.message+'</div>'}
 }
 
-function nav(p) { page = p; document.querySelectorAll('.nav-item').forEach(e => e.classList.toggle('active', e.dataset.p===p)); r(); }
-
-function cp(t) { navigator.clipboard.writeText(t).then(() => { /* copied */ }); }
-
-function modal(title, body, onOk, okText='Confirm') {
-  const el = document.createElement('div');
-  el.className = 'modal-overlay';
-  el.innerHTML = '<div class="modal"><h3>'+title+'</h3>'+body+'<div class="fb mt3"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button><button class="btn btn-p" id="okbtn">'+okText+'</button></div></div>';
-  document.body.appendChild(el);
-  el.querySelector('#okbtn').onclick = async () => { try { await onOk(el); } catch(e) { alert(e); } el.remove(); };
-  el.querySelector('input')?.focus();
+async function renderDash(o){
+var r=await API('/admin/api/stats'),s=await r.json();
+o.innerHTML='<div class="page-enter"><div style="margin-bottom:16px;color:var(--dim);font-size:12px">绠＄悊鍛? '+USER.email+'</div><div class="stats-grid"><div class="stat-card"><div class="l">杩?0澶╄姹?/div><div class="v">'+s.total_requests+'</div></div><div class="stat-card"><div class="l">鎬籘oken娑堣€?/div><div class="v">'+s.total_tokens.toLocaleString()+'</div></div><div class="stat-card"><div class="l">杈撳叆Token</div><div class="v">'+s.total_prompt_tokens.toLocaleString()+'</div></div><div class="stat-card"><div class="l">杈撳嚭Token</div><div class="v">'+s.total_completion_tokens.toLocaleString()+'</div></div><div class="stat-card"><div class="l">鎬昏垂鐢?USD)</div><div class="v">$'+s.total_cost+'</div></div></div><div class="card"><div class="section-title">鎸夊巶鍟嗙粺璁?/div><table><thead><tr><th>鍘傚晢</th><th>璇锋眰鏁?/th><th>Token鏁?/th><th>璐圭敤</th></tr></thead><tbody>'+(s.by_provider.map(function(p){return '<tr><td>'+p.provider+'</td><td>'+p.n+'</td><td>'+p.t.toLocaleString()+'</td><td>$'+p.cost+'</td></tr>'}).join('')||'<tr><td colspan="4" class="empty">鏆傛棤鏁版嵁</td></tr>')+'</tbody></table></div></div>';
 }
 
-function logout() { localStorage.clear(); window.location.href = '/login'; }
-
-document.querySelectorAll('.nav-item').forEach(e => e.addEventListener('click', () => nav(e.dataset.p)));
-
-async function r() {
-  const o = document.getElementById('main');
-  try {
-    switch (page) {
-      case 'dashboard': return renderDashboard(o);
-      case 'users': return renderUsers(o);
-      case 'channels': return renderChannels(o);
-      case 'tokens': return renderTokens(o);
-      case 'models': return renderModels(o);
-      case 'logs': return renderLogs(o);
-    }
-  } catch (e) {
-    o.innerHTML = '<div class="empty" style="color:var(--red)">Error: ' + e.message + '</div>';
-  }
+async function renderUsers(o){
+var r=await API('/admin/api/users'),d=await r.json(),users=d.users||[];
+o.innerHTML='<div class="page-enter"><div class="fb mb2"><div class="section-title">鐢ㄦ埛鍒楄〃 ('+users.length+'浜?</div></div><div class="card"><table><thead><tr><th>ID</th><th>閭</th><th>鍚嶇О</th><th>瑙掕壊</th><th>棰濆害</th><th>宸茬敤</th><th>閫熺巼</th><th>浠ょ墝鏁?/th><th>鐘舵€?/th><th>鎿嶄綔</th></tr></thead><tbody>'+users.map(function(u){return '<tr><td class="mono">'+u.id+'</td><td>'+u.email+'</td><td>'+(u.name||'-')+'</td><td><span class="badge '+(u.is_admin?'by':'bg')+'">'+(u.is_admin?'绠＄悊鍛?:'鐢ㄦ埛')+'</span></td><td>'+(u.quota<0?'鏃犻檺':'$'+u.quota)+'</td><td>$'+u.used_quota.toFixed(3)+'</td><td>'+u.rate_limit_rpm+'</td><td>'+(u.token_count||0)+'</td><td><span class="badge '+(u.enabled?'bg':'br')+'">'+(u.enabled?'鍚敤':'绂佺敤')+'</span></td><td><button class="btn btn-sm" onclick="editUser('+u.id+')">缂栬緫</button><button class="btn btn-sm '+(u.enabled?'btn-d':'')+'" onclick="toggleUser('+u.id+','+!u.enabled+')">'+(u.enabled?'绂佺敤':'鍚敤')+'</button></td></tr>'}).join('')||'<tr><td colspan="10" class="empty">鏆傛棤鐢ㄦ埛</td></tr>'}</tbody></table></div></div>';
 }
 
-async function renderDashboard(o) {
-  const r = await API('/admin/api/stats');
-  const s = await r.json();
-  o.innerHTML = `
-    <div style="margin-bottom:20px"><span id="adminName" style="color:var(--dim)">Admin: ${USER.email}</span></div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="l">Requests (30d)</div><div class="v">${s.total_requests}</div></div>
-      <div class="stat-card"><div class="l">Total Tokens</div><div class="v">${s.total_tokens.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="l">Prompt</div><div class="v">${s.total_prompt_tokens.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="l">Completion</div><div class="v">${s.total_completion_tokens.toLocaleString()}</div></div>
-      <div class="stat-card"><div class="l">Cost (USD)</div><div class="v">$${s.total_cost}</div></div>
-    </div>
-    <div class="card">
-      <div class="section-title">By Provider</div>
-      <table><thead><tr><th>Provider</th><th>Requests</th><th>Tokens</th><th>Cost</th></tr></thead>
-      <tbody>${s.by_provider.map(p=>`<tr><td>${p.provider}</td><td>${p.n}</td><td>${p.t.toLocaleString()}</td><td>$${p.cost}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No data</td></tr>'}</tbody></table>
-    </div>
-  `;
+function editUser(uid){
+API('/admin/api/users').then(function(r){return r.json()}).then(function(data){
+var u=data.users.find(function(x){return x.id===uid});if(!u)return;
+modal('缂栬緫鐢ㄦ埛 #'+uid,'<div class="form-g"><label>閭</label><input value="'+u.email+'" disabled></div><div class="form-row mt2"><div class="form-g"><label>棰濆害($) (-1=鏃犻檺)</label><input id="eu-q" type="number" step="0.01" value="'+u.quota+'"></div><div class="form-g"><label>閫熺巼(RPM)</label><input id="eu-r" type="number" value="'+u.rate_limit_rpm+'" min="1"></div></div>','淇濆瓨',async function(){var q=parseFloat(document.getElementById('eu-q').value),rpm=parseInt(document.getElementById('eu-r').value);await API('/admin/api/users/'+uid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({quota:q,rate_limit_rpm:rpm})});toast('宸叉洿鏂?);render()})})}
+
+function toggleUser(uid,en){if(!confirm((en?'鍚敤':'绂佺敤')+'姝ょ敤鎴凤紵'))return;API('/admin/api/users/'+uid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:en})}).then(function(){toast('宸?+(en?'鍚敤':'绂佺敤'));render()})}
+
+async function renderChannels(o){
+var r=await API('/admin/api/channels'),d=await r.json(),chs=d.channels||[];
+o.innerHTML='<div class="page-enter"><div class="fb mb2"><div class="section-title">娓犻亾鍒楄〃</div><button class="btn btn-p" onclick="addCh()">+ 娣诲姞娓犻亾</button></div><div class="card"><table><thead><tr><th>ID</th><th>鍘傚晢</th><th>鍚嶇О</th><th>瀵嗛挜</th><th>鏉冮噸</th><th>鐘舵€?/th><th>鎿嶄綔</th></tr></thead><tbody>'+chs.map(function(c){return '<tr><td class="mono">'+c.id+'</td><td>'+c.provider_name+'</td><td>'+(c.name||'-')+'</td><td class="mono">'+c.api_key+'</td><td>'+c.weight+'</td><td><span class="badge '+(c.enabled?'bg':'br')+'">'+(c.enabled?'鍚敤':'绂佺敤')+'</span></td><td><button class="btn btn-sm btn-d" onclick="delCh('+c.id+')">鍒犻櫎</button></td></tr>'}).join('')||'<tr><td colspan="7" class="empty">鏆傛棤娓犻亾锛岃鍏堟坊鍔?/td></tr>'}</tbody></table></div></div>';
 }
 
-async function renderUsers(o) {
-  const r = await API('/admin/api/users');
-  const data = await r.json();
-  const users = data.users || [];
-  o.innerHTML = `
-    <div class="fb mb2"><div class="section-title">Users (${users.length})</div></div>
-    <div class="card"><table>
-    <thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Role</th><th>Quota</th><th>Used</th><th>RPM</th><th>Tokens</th><th>Status</th><th></th></tr></thead>
-    <tbody>${users.map(u => `
-      <tr>
-        <td class="mono">${u.id}</td>
-        <td>${u.email}</td>
-        <td>${u.name||'-'}</td>
-        <td><span class="badge ${u.is_admin?'by':'bg'}">${u.is_admin?'Admin':'User'}</span></td>
-        <td>${u.quota<0?'Unlimited':'$'+u.quota}</td>
-        <td>$${u.used_quota.toFixed(3)}</td>
-        <td>${u.rate_limit_rpm}</td>
-        <td>${u.token_count||0}</td>
-        <td><span class="badge ${u.enabled?'bg':'br'}">${u.enabled?'Active':'Disabled'}</span></td>
-        <td>
-          <button class="btn btn-sm" onclick="editUser(${u.id})">Edit</button>
-          ${u.enabled ? '<button class="btn btn-sm btn-d" onclick="toggleUser('+u.id+',false)">Disable</button>' : '<button class="btn btn-sm" onclick="toggleUser('+u.id+',true)">Enable</button>'}
-        </td>
-      </tr>`).join('')||'<tr><td colspan="10" class="empty">No users</td></tr>'}</tbody>
-    </table></div>
-  `;
+async function addCh(){
+var r=await API('/admin/api/providers'),d=await r.json();
+var opts=d.providers.map(function(p){return '<option value="'+p.id+'">'+p.name+'</option>'}).join('');
+modal('娣诲姞娓犻亾','<div class="form-g"><label>鍘傚晢</label><select id="ch-p">'+opts+'</select></div><div class="form-g mt2"><label>鍚嶇О</label><input id="ch-n" placeholder="渚嬪: 瀵嗛挜#1"></div><div class="form-g mt2"><label>API瀵嗛挜</label><input id="ch-k" placeholder="sk-..." type="password"></div><div class="form-g mt2"><label>鏉冮噸</label><input id="ch-w" type="number" value="1" min="1"></div>','纭娣诲姞',async function(){await API('/admin/api/channels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider_id:document.getElementById('ch-p').value,name:document.getElementById('ch-n').value,api_key:document.getElementById('ch-k').value,weight:parseInt(document.getElementById('ch-w').value)||1})});toast('娓犻亾宸叉坊鍔?);render()})}
+
+function delCh(cid){if(confirm('纭畾鍒犻櫎姝ゆ笭閬擄紵'))API('/admin/api/channels/'+cid,{method:'DELETE'}).then(function(){toast('宸插垹闄?);render()})}
+
+async function renderTokens(o){
+var r=await API('/admin/api/tokens'),d=await r.json(),tokens=d.tokens||[];
+o.innerHTML='<div class="page-enter"><div class="fb mb2"><div class="section-title">浠ょ墝鍒楄〃</div><button class="btn btn-p" onclick="addTk()">+ 鍒涘缓浠ょ墝</button></div><div class="card"><table><thead><tr><th>ID</th><th>鍚嶇О</th><th>閭</th><th>浠ょ墝</th><th>棰濆害</th><th>宸茬敤</th><th>鐘舵€?/th><th>鎿嶄綔</th></tr></thead><tbody>'+tokens.map(function(t){return '<tr><td>'+t.id+'</td><td>'+t.name+'</td><td>'+(t.email||'-')+'</td><td class="mono">'+t.token_prefix+'...</td><td>'+(t.quota<0?'-':'$'+t.quota)+'</td><td>$'+t.used_quota.toFixed(3)+'</td><td><span class="badge '+(t.enabled?'bg':'br')+'">'+(t.enabled?'鍚敤':'绂佺敤')+'</span></td><td><button class="btn btn-sm" onclick="addQ('+t.id+')">鍔犻搴?/button><button class="btn btn-sm btn-d" onclick="rvTk('+t.id+')" '+(t.enabled?'':'disabled')+'>鎾ら攢</button></td></tr>'}).join('')||'<tr><td colspan="8" class="empty">鏆傛棤浠ょ墝</td></tr>'}</tbody></table></div></div>';
 }
 
-function editUser(uid) {
-  API('/admin/api/users').then(r => r.json()).then(data => {
-    const u = data.users.find(x => x.id === uid);
-    if (!u) return;
-    modal('Edit User #'+uid, `
-      <div class="form-g"><label>Email</label><input value="${u.email}" disabled></div>
-      <div class="form-row mt2">
-        <div class="form-g"><label>Quota ($) <small>(-1=unlimited)</small></label><input id="eu-q" type="number" step="0.01" value="${u.quota}"></div>
-        <div class="form-g"><label>RPM</label><input id="eu-r" type="number" value="${u.rate_limit_rpm}" min="1"></div>
-      </div>`,
-      async () => {
-        const quota = parseFloat(document.getElementById('eu-q').value);
-        const rpm = parseInt(document.getElementById('eu-r').value);
-        await API('/admin/api/users/'+uid, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({quota,rpm}) });
-        r();
-      }, 'Save'
-    );
-  });
+function addTk(){modal('鍒涘缓浠ょ墝','<div class="form-g"><label>鍚嶇О</label><input id="tk-n" placeholder="渚嬪: 寮€鍙戞満"></div><div class="form-row mt2"><div class="form-g"><label>棰濆害($) (-1=鏃犻檺)</label><input id="tk-q" type="number" value="-1"></div><div class="form-g"><label>閫熺巼(RPM)</label><input id="tk-r" type="number" value="60"></div></div><div id="tk-res" style="display:none" class="mt2"><div class="section-title">浠ょ墝宸茬敓鎴愶紙绔嬪嵆澶嶅埗锛侊級</div><div class="token-box mt1" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:12px;display:flex;align-items:center;gap:8px"><span id="tk-v"></span><button class="btn btn-sm" onclick="cp(document.getElementById(\'tk-v\').textContent)">澶嶅埗</button></div></div>','鍒涘缓',async function(){var r=await API('/admin/api/tokens',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('tk-n').value||'绠＄悊浠ょ墝',quota:parseFloat(document.getElementById('tk-q').value)||-1,rate_limit_rpm:parseInt(document.getElementById('tk-r').value)||60})});var d=await r.json();document.getElementById('tk-v').textContent=d.token.token;document.getElementById('tk-res').style.display='block';document.getElementById('okbtn').textContent='瀹屾垚';document.getElementById('okbtn').onclick=function(){document.querySelector('.modal-overlay').remove();render()}})}
+
+function addQ(tid){modal('澧炲姞棰濆害','<div class="form-g"><label>閲戦(USD)</label><input id="q-v" type="number" step="0.01" min="0.01" value="1"></div>','纭',async function(){await API('/admin/api/tokens/'+tid+'/quota',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:parseFloat(document.getElementById('q-v').value)})});toast('棰濆害宸插鍔?);render()})}
+function rvTk(tid){if(confirm('纭畾鎾ら攢姝や护鐗岋紵'))API('/admin/api/tokens/'+tid,{method:'DELETE'}).then(function(){toast('宸叉挙閿€');render()})}
+
+async function renderModels(o){
+var r=await API('/admin/api/models'),d=await r.json(),models=d.models||[];
+o.innerHTML='<div class="page-enter"><div class="fb mb2"><div class="section-title">妯″瀷瀹氫环</div><button class="btn btn-p" onclick="addMd()">+ 娣诲姞妯″瀷</button></div><div class="card"><table><thead><tr><th>妯″瀷ID</th><th>鍚嶇О</th><th>鍘傚晢</th><th>杈撳叆浠?/th><th>杈撳嚭浠?/th><th>鍗曚綅</th><th>鎿嶄綔</th></tr></thead><tbody>'+models.map(function(m){return '<tr><td class="mono">'+m.id+'</td><td>'+m.display_name+'</td><td>'+m.provider_name+'</td><td>$'+m.input_price+'</td><td>$'+m.output_price+'</td><td>'+m.unit_size+'</td><td><button class="btn btn-sm btn-d" onclick="delMd(\''+m.provider_id+'\',\''+m.id+'\')">鍒犻櫎</button></td></tr>'}).join('')||'<tr><td colspan="7" class="empty">鏆傛棤妯″瀷</td></tr>'}</tbody></table></div></div>';
 }
 
-function toggleUser(uid, enable) {
-  if (!confirm((enable?'Enable':'Disable') + ' this user?')) return;
-  API('/admin/api/users/'+uid, {
-    method:'PATCH', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ enabled: enable })
-  }).then(() => r());
+async function addMd(){
+var r=await API('/admin/api/providers'),d=await r.json();
+var opts=d.providers.map(function(p){return '<option value="'+p.id+'">'+p.name+'</option>'}).join('');
+modal('娣诲姞妯″瀷','<div class="form-g"><label>鍘傚晢</label><select id="md-p">'+opts+'</select></div><div class="form-row mt2"><div class="form-g" style="flex:2"><label>妯″瀷ID</label><input id="md-i" placeholder="gpt-4o"></div><div class="form-g" style="flex:2"><label>鏄剧ず鍚嶇О</label><input id="md-d" placeholder="GPT-4o"></div></div><div class="form-row mt2"><div class="form-g"><label>杈撳叆浠锋牸</label><input id="md-in" type="number" step="0.001" value="1"></div><div class="form-g"><label>杈撳嚭浠锋牸</label><input id="md-out" type="number" step="0.001" value="1"></div><div class="form-g"><label>鍗曚綅(tokens)</label><input id="md-u" type="number" value="1000"></div></div>','纭娣诲姞',async function(){await API('/admin/api/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model_id:document.getElementById('md-i').value,provider_id:document.getElementById('md-p').value,display_name:document.getElementById('md-d').value,input_price:parseFloat(document.getElementById('md-in').value),output_price:parseFloat(document.getElementById('md-out').value),unit_size:parseInt(document.getElementById('md-u').value)})});toast('妯″瀷宸叉坊鍔?);render()})}
+function delMd(pid,mid){if(confirm('纭畾鍒犻櫎姝ゆā鍨嬶紵'))API('/admin/api/models/'+pid+'/'+mid,{method:'DELETE'}).then(function(){toast('宸插垹闄?);render()})}
+
+async function renderLogs(o){
+var r=await API('/admin/api/logs?limit=100'),d=await r.json(),logs=d.logs||[];
+o.innerHTML='<div class="page-enter"><div class="section-title">鏈€杩戜娇鐢ㄨ褰?/div><div class="card"><table><thead><tr><th>鏃堕棿</th><th>鐢ㄦ埛</th><th>鍘傚晢</th><th>妯″瀷</th><th>杈撳叆</th><th>杈撳嚭</th><th>璐圭敤</th><th>鐘舵€?/th></tr></thead><tbody>'+logs.map(function(l){return '<tr><td class="mono">'+l.created_at+'</td><td>'+(l.user_name||'-')+'</td><td>'+l.provider+'</td><td>'+l.model+'</td><td>'+l.prompt_tokens+'</td><td>'+l.completion_tokens+'</td><td>$'+l.quota_used.toFixed(5)+'</td><td><span class="badge '+(l.status==='success'?'bg':'br')+'">'+(l.status==='success'?'鎴愬姛':'澶辫触')+'</span></td></tr>'}).join('')||'<tr><td colspan="8" class="empty">鏆傛棤浣跨敤璁板綍</td></tr>'}</tbody></table></div></div>';
 }
 
-async function renderChannels(o) {
-  const r = await API('/admin/api/channels');
-  const data = await r.json();
-  const channels = data.channels || [];
-  o.innerHTML = `
-    <div class="fb mb2"><div class="section-title">Channels</div><button class="btn btn-p" onclick="addCh()">+ Add</button></div>
-    <div class="card"><table>
-    <thead><tr><th>ID</th><th>Provider</th><th>Name</th><th>Key</th><th>Weight</th><th>Status</th><th></th></tr></thead>
-    <tbody>${channels.map(c => `<tr>
-      <td class="mono">${c.id}</td><td>${c.provider_name}</td><td>${c.name||'-'}</td>
-      <td class="mono">${c.api_key}</td><td>${c.weight}</td>
-      <td><span class="badge ${c.enabled?'bg':'br'}">${c.enabled?'Active':'Disabled'}</span></td>
-      <td><button class="btn btn-sm btn-d" onclick="delCh(${c.id})">Delete</button></td>
-    </tr>`).join('')||'<tr><td colspan="7" class="empty">No channels</td></tr>'}</tbody>
-    </table></div>
-  `;
-}
-
-async function addCh() {
-  const r = await API('/admin/api/providers');
-  const data = await r.json();
-  const opts = data.providers.map(p => `<option value="${p.id}">${p.name} (${p.id})</option>`).join('');
-  modal('Add Channel', `
-    <div class="form-g"><label>Provider</label><select id="ch-p">${opts}</select></div>
-    <div class="form-g mt2"><label>Name</label><input id="ch-n" placeholder="Key #1"></div>
-    <div class="form-g mt2"><label>API Key</label><input id="ch-k" placeholder="sk-..." type="password"></div>
-    <div class="form-g mt2"><label>Weight</label><input id="ch-w" type="number" value="1" min="1"></div>
-  `, async () => {
-    await API('/admin/api/channels', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        provider_id: document.getElementById('ch-p').value,
-        name: document.getElementById('ch-n').value,
-        api_key: document.getElementById('ch-k').value,
-        weight: parseInt(document.getElementById('ch-w').value) || 1
-      })
-    });
-    r();
-  });
-}
-
-function delCh(cid) { if (confirm('Delete this channel?')) API('/admin/api/channels/'+cid,{method:'DELETE'}).then(()=>r()); }
-
-async function renderTokens(o) {
-  const rt = await API('/admin/api/tokens');
-  const td = await rt.json();
-  const tokens = td.tokens || [];
-  o.innerHTML = `
-    <div class="fb mb2"><div class="section-title">All Tokens</div><button class="btn btn-p" onclick="addTk()">+ Create</button></div>
-    <div class="card"><table>
-    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Token</th><th>Quota</th><th>Used</th><th>Status</th><th></th></tr></thead>
-    <tbody>${tokens.map(t=>`<tr>
-      <td>${t.id}</td><td>${t.name}</td><td>${t.email||'-'}</td>
-      <td class="mono">${t.token_prefix}...</td>
-      <td>${t.quota<0?'-':'$'+t.quota}</td><td>$${t.used_quota.toFixed(3)}</td>
-      <td><span class="badge ${t.enabled?'bg':'br'}">${t.enabled?'Active':'Disabled'}</span></td>
-      <td>
-        <button class="btn btn-sm" onclick="addQ(${t.id})">+Quota</button>
-        <button class="btn btn-sm btn-d" onclick="rvTk(${t.id})" ${!t.enabled?'disabled':''}>Revoke</button>
-      </td>
-    </tr>`).join('')||'<tr><td colspan="8" class="empty">No tokens</td></tr>'}</tbody>
-    </table></div>
-  `;
-}
-
-function addTk() {
-  modal('Create Token', `
-    <div class="form-g"><label>Name</label><input id="tk-n" placeholder="Dev Machine"></div>
-    <div class="form-row mt2">
-      <div class="form-g"><label>Quota ($) (-1=unlimited)</label><input id="tk-q" type="number" value="-1"></div>
-      <div class="form-g"><label>RPM</label><input id="tk-r" type="number" value="60"></div>
-    </div>
-    <div id="tk-res" style="display:none" class="mt2">
-      <div class="section-title">Token (copy now!)</div>
-      <div class="token-box mt1"><span id="tk-v"></span><button class="btn btn-sm" onclick="cp(document.getElementById('tk-v').textContent)">Copy</button></div>
-    </div>
-  `, async () => {
-    const r = await API('/admin/api/tokens', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        name: document.getElementById('tk-n').value||'Admin Token',
-        quota: parseFloat(document.getElementById('tk-q').value)||-1,
-        rate_limit_rpm: parseInt(document.getElementById('tk-r').value)||60
-      })
-    });
-    const d = await r.json();
-    document.getElementById('tk-v').textContent = d.token.token;
-    document.getElementById('tk-res').style.display = 'block';
-    document.getElementById('okbtn').textContent = 'Done';
-    document.getElementById('okbtn').onclick = () => { document.querySelector('.modal-overlay').remove(); r(); };
-  });
-}
-
-function addQ(tid) {
-  modal('Add Quota','<div class="form-g"><label>Amount (USD)</label><input id="q-v" type="number" step="0.01" min="0.01" value="1"></div>', async () => {
-    await API('/admin/api/tokens/'+tid+'/quota', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ amount: parseFloat(document.getElementById('q-v').value) })
-    });
-    r();
-  });
-}
-function rvTk(tid) { if (confirm('Revoke this token?')) API('/admin/api/tokens/'+tid,{method:'DELETE'}).then(()=>r()); }
-
-async function renderModels(o) {
-  const rm = await API('/admin/api/models');
-  const md = await rm.json();
-  const models = md.models || [];
-  o.innerHTML = `
-    <div class="fb mb2"><div class="section-title">Models</div><button class="btn btn-p" onclick="addMd()">+ Add</button></div>
-    <div class="card"><table>
-    <thead><tr><th>ID</th><th>Name</th><th>Provider</th><th>Input ($/1K)</th><th>Output ($/1K)</th><th>Unit</th><th></th></tr></thead>
-    <tbody>${models.map(m=>`<tr>
-      <td class="mono">${m.id}</td><td>${m.display_name}</td><td>${m.provider_name}</td>
-      <td>$${m.input_price}</td><td>$${m.output_price}</td><td>${m.unit_size}</td>
-      <td><button class="btn btn-sm btn-d" onclick="delMd('${m.provider_id}','${m.id}')">Delete</button></td>
-    </tr>`).join('')||'<tr><td colspan="7" class="empty">No models</td></tr>'}</tbody>
-    </table></div>
-  `;
-}
-
-async function addMd() {
-  const r = await API('/admin/api/providers');
-  const data = await r.json();
-  const opts = data.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  modal('Add Model', `
-    <div class="form-g"><label>Provider</label><select id="md-p">${opts}</select></div>
-    <div class="form-row mt2">
-      <div class="form-g" style="flex:2"><label>Model ID</label><input id="md-i" placeholder="gpt-4o"></div>
-      <div class="form-g" style="flex:2"><label>Display Name</label><input id="md-d" placeholder="GPT-4o"></div>
-    </div>
-    <div class="form-row mt2">
-      <div class="form-g"><label>Input Price</label><input id="md-in" type="number" step="0.001" value="1"></div>
-      <div class="form-g"><label>Output Price</label><input id="md-out" type="number" step="0.001" value="1"></div>
-      <div class="form-g"><label>Unit (tokens)</label><input id="md-u" type="number" value="1000"></div>
-    </div>
-  `, async () => {
-    await API('/admin/api/models', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model_id: document.getElementById('md-i').value,
-        provider_id: document.getElementById('md-p').value,
-        display_name: document.getElementById('md-d').value,
-        input_price: parseFloat(document.getElementById('md-in').value),
-        output_price: parseFloat(document.getElementById('md-out').value),
-        unit_size: parseInt(document.getElementById('md-u').value)
-      })
-    });
-    r();
-  });
-}
-function delMd(pid,mid) { if (confirm('Delete model?')) API('/admin/api/models/'+pid+'/'+mid,{method:'DELETE'}).then(()=>r()); }
-
-async function renderLogs(o) {
-  const r = await API('/admin/api/logs?limit=100');
-  const data = await r.json();
-  const logs = data.logs || [];
-  o.innerHTML = `
-    <div class="section-title">Recent Logs</div>
-    <div class="card"><table>
-    <thead><tr><th>Time</th><th>User</th><th>Provider</th><th>Model</th><th>Prompt</th><th>Comp</th><th>Cost</th><th>Status</th></tr></thead>
-    <tbody>${logs.map(l=>`<tr>
-      <td class="mono">${l.created_at}</td><td>${l.user_name||'-'}</td><td>${l.provider}</td><td>${l.model}</td>
-      <td>${l.prompt_tokens}</td><td>${l.completion_tokens}</td><td>$${l.quota_used.toFixed(5)}</td>
-      <td><span class="badge ${l.status==='success'?'bg':'br'}">${l.status}</span></td>
-    </tr>`).join('')||'<tr><td colspan="8" class="empty">No logs</td></tr>'}</tbody>
-    </table></div>
-  `;
-}
-
-r();
+render();
 </script>
 </body>
 </html>
