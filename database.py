@@ -1,5 +1,6 @@
-﻿import sqlite3, os, secrets, hashlib, random
+﻿import sqlite3, os, secrets, hashlib, random, bcrypt
 from datetime import datetime, timezone
+from typing import Optional
 
 DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 DB_PATH = os.path.join(DB_DIR, "proxy.db")
@@ -39,9 +40,23 @@ def init_db():
             PRIMARY KEY (id, provider_id),
             FOREIGN KEY (provider_id) REFERENCES providers(id)
         );
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL DEFAULT '',
+            is_admin INTEGER DEFAULT 0,
+            quota REAL NOT NULL DEFAULT 0.5,
+            used_quota REAL NOT NULL DEFAULT 0,
+            rate_limit_rpm INTEGER DEFAULT 30,
+            enabled INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
         CREATE TABLE IF NOT EXISTS user_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL, email TEXT DEFAULT '',
+            user_id INTEGER,
+            name TEXT NOT NULL,
+            email TEXT DEFAULT '',
             token_hash TEXT NOT NULL UNIQUE,
             token_prefix TEXT NOT NULL,
             role TEXT DEFAULT 'user',
@@ -50,7 +65,8 @@ def init_db():
             rate_limit_rpm INTEGER DEFAULT 60,
             enabled INTEGER DEFAULT 1,
             created_at TEXT DEFAULT (datetime('now')),
-            last_used_at TEXT
+            last_used_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         );
         CREATE TABLE IF NOT EXISTS usage_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +87,7 @@ def init_db():
             FOREIGN KEY (token_id) REFERENCES user_tokens(id)
         );
     """)
+    # Seed providers
     existing = conn.execute("SELECT COUNT(*) FROM providers").fetchone()[0]
     if existing == 0:
         providers = [
@@ -114,18 +131,121 @@ def init_db():
     conn.close()
 
 
+# ── User management ─────────────────────────────────
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+
+
+def create_user(email: str, password: str, name: str = "", is_admin: bool = False, quota: float = 0.5) -> dict:
+    conn = get_db()
+    h = hash_password(password)
+    try:
+        conn.execute(
+            "INSERT INTO users (email, password_hash, name, is_admin, quota) VALUES (?,?,?,?,?)",
+            (email.strip().lower(), h, name, 1 if is_admin else 0, quota)
+        )
+        conn.commit()
+        uid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+        conn.close()
+        return dict(row)
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None
+
+
+def get_user_by_email(email: str) -> Optional[dict]:
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM users WHERE email = ? AND enabled = 1",
+        (email.strip().lower(),)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_user_by_id(uid: int) -> Optional[dict]:
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM users WHERE id = ?",
+        (uid,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_users() -> list[dict]:
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, email, name, is_admin, quota, used_quota, rate_limit_rpm, enabled, created_at FROM users ORDER BY id"
+    ).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["is_admin"] = bool(d["is_admin"])
+        d["enabled"] = bool(d["enabled"])
+        result.append(d)
+    return result
+
+
+def update_user(uid: int, **kw) -> bool:
+    conn = get_db()
+    allowed = {"quota", "rate_limit_rpm", "enabled", "is_admin", "name"}
+    updates = {k: v for k, v in kw.items() if k in allowed}
+    # Convert booleans
+    if "enabled" in updates:
+        updates["enabled"] = 1 if updates["enabled"] else 0
+    if "is_admin" in updates:
+        updates["is_admin"] = 1 if updates["is_admin"] else 0
+    if updates:
+        parts = ", ".join(f"{k}=?" for k in updates)
+        conn.execute(f"UPDATE users SET {parts} WHERE id=?", (*updates.values(), uid))
+        conn.commit()
+    conn.close()
+    return True
+
+
+def update_user_password(uid: int, new_password: str) -> bool:
+    conn = get_db()
+    h = hash_password(new_password)
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (h, uid))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def check_user_quota(user_id: int) -> bool:
+    """Return True if user still has quota remaining."""
+    conn = get_db()
+    row = conn.execute("SELECT quota, used_quota FROM users WHERE id = ? AND enabled = 1", (user_id,)).fetchone()
+    conn.close()
+    if not row:
+        return False
+    if row["quota"] >= 0 and row["used_quota"] >= row["quota"]:
+        return False
+    return True
+
+
+# ── Token management ────────────────────────────────
+
 def hash_token(t):
     return hashlib.sha256(t.encode()).hexdigest()
 
 
-def create_token(name, email="", role="user", quota=-1, rate_limit_rpm=60):
+def create_token(name, email="", role="user", quota=-1, rate_limit_rpm=60, user_id=None):
     conn = get_db()
     token = "sk-" + secrets.token_urlsafe(32)
     h = hash_token(token)
     prefix = token[:12]
     conn.execute(
-        "INSERT INTO user_tokens (name, email, token_hash, token_prefix, role, quota, rate_limit_rpm) VALUES (?,?,?,?,?,?,?)",
-        (name, email, h, prefix, role, quota, rate_limit_rpm)
+        "INSERT INTO user_tokens (user_id, name, email, token_hash, token_prefix, role, quota, rate_limit_rpm) VALUES (?,?,?,?,?,?,?,?)",
+        (user_id, name, email, h, prefix, role, quota, rate_limit_rpm)
     )
     conn.commit()
     row = conn.execute("SELECT * FROM user_tokens WHERE token_hash = ?", (h,)).fetchone()
@@ -141,22 +261,55 @@ def verify_token(token):
     row = conn.execute(
         "SELECT * FROM user_tokens WHERE token_hash = ? AND enabled = 1", (h,)
     ).fetchone()
-    conn.close()
     if not row:
+        conn.close()
         return None
     d = dict(row)
-    if d["quota"] >= 0 and d["used_quota"] >= d["quota"]:
-        return None
+    # Check user quota if linked to a user
+    if d.get("user_id"):
+        user_row = conn.execute("SELECT quota, used_quota, enabled FROM users WHERE id = ?", (d["user_id"],)).fetchone()
+        if user_row and not user_row["enabled"]:
+            conn.close()
+            return None
+        if user_row and user_row["quota"] >= 0 and user_row["used_quota"] >= user_row["quota"]:
+            conn.close()
+            return None
+    else:
+        # Legacy: check token-level quota
+        if d["quota"] >= 0 and d["used_quota"] >= d["quota"]:
+            conn.close()
+            return None
+    conn.close()
     return d
 
 
-def list_tokens():
+def list_tokens(user_id=None):
     conn = get_db()
-    rows = conn.execute(
-        "SELECT id, name, email, token_prefix, role, quota, used_quota, rate_limit_rpm, enabled, created_at, last_used_at FROM user_tokens ORDER BY id"
-    ).fetchall()
+    if user_id:
+        rows = conn.execute(
+            "SELECT id, user_id, name, email, token_prefix, role, quota, used_quota, rate_limit_rpm, enabled, created_at, last_used_at FROM user_tokens WHERE user_id = ? ORDER BY id",
+            (user_id,)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT id, user_id, name, email, token_prefix, role, quota, used_quota, rate_limit_rpm, enabled, created_at, last_used_at FROM user_tokens ORDER BY id"
+        ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def get_token_by_id(tid, user_id=None):
+    conn = get_db()
+    if user_id:
+        row = conn.execute(
+            "SELECT * FROM user_tokens WHERE id = ? AND user_id = ?", (tid, user_id)
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT * FROM user_tokens WHERE id = ?", (tid,)
+        ).fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 
 def revoke_token(tid):
@@ -180,6 +333,13 @@ def update_token(tid, **kw):
 def add_quota(tid, amount):
     conn = get_db()
     conn.execute("UPDATE user_tokens SET quota = quota + ? WHERE id = ? AND quota >= 0", (amount, tid))
+    conn.commit()
+    conn.close()
+
+
+def add_user_quota(uid, amount):
+    conn = get_db()
+    conn.execute("UPDATE users SET quota = quota + ? WHERE id = ? AND quota >= 0", (amount, uid))
     conn.commit()
     conn.close()
 
@@ -215,23 +375,45 @@ def log_usage(token_id, user_name, provider, model, prompt_tokens, completion_to
         (token_id, user_name, provider, model, prompt_tokens, completion_tokens, total_tokens, quota_used, status)
     )
     if quota_used > 0:
-        conn.execute("UPDATE user_tokens SET used_quota = used_quota + ?, last_used_at = datetime('now') WHERE id = ?", (quota_used, token_id))
+        # Update user quota if token linked to user
+        row = conn.execute("SELECT user_id FROM user_tokens WHERE id = ?", (token_id,)).fetchone()
+        if row and row["user_id"]:
+            conn.execute("UPDATE users SET used_quota = used_quota + ? WHERE id = ?", (quota_used, row["user_id"]))
+        else:
+            conn.execute("UPDATE user_tokens SET used_quota = used_quota + ? WHERE id = ?", (quota_used, token_id))
+        conn.execute("UPDATE user_tokens SET last_used_at = datetime('now') WHERE id = ?", (token_id,))
     else:
         conn.execute("UPDATE user_tokens SET last_used_at = datetime('now') WHERE id = ?", (token_id,))
     conn.commit()
     conn.close()
 
 
-def get_usage_stats(days=30):
+def get_usage_stats(days=30, user_id=None):
     conn = get_db()
-    total = conn.execute(
-        "SELECT COUNT(*) as n, COALESCE(SUM(prompt_tokens),0) pt, COALESCE(SUM(completion_tokens),0) ct, COALESCE(SUM(total_tokens),0) tt, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?)",
-        (f"-{days} days",)
-    ).fetchone()
-    by_provider = conn.execute(
-        "SELECT provider, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY provider ORDER BY n DESC",
-        (f"-{days} days",)
-    ).fetchall()
+    if user_id:
+        # Get token IDs for this user
+        tids = [r[0] for r in conn.execute("SELECT id FROM user_tokens WHERE user_id = ?", (user_id,)).fetchall()]
+        if not tids:
+            conn.close()
+            return {"total_requests": 0, "total_prompt_tokens": 0, "total_completion_tokens": 0, "total_tokens": 0, "total_cost": 0, "by_provider": [], "by_model": []}
+        placeholders = ",".join("?" * len(tids))
+        total = conn.execute(
+            f"SELECT COUNT(*) as n, COALESCE(SUM(prompt_tokens),0) pt, COALESCE(SUM(completion_tokens),0) ct, COALESCE(SUM(total_tokens),0) tt, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE token_id IN ({placeholders}) AND created_at >= datetime('now', ?)",
+            (*tids, f"-{days} days")
+        ).fetchone()
+        by_provider = conn.execute(
+            f"SELECT provider, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE token_id IN ({placeholders}) AND created_at >= datetime('now', ?) GROUP BY provider ORDER BY n DESC",
+            (*tids, f"-{days} days")
+        ).fetchall()
+    else:
+        total = conn.execute(
+            "SELECT COUNT(*) as n, COALESCE(SUM(prompt_tokens),0) pt, COALESCE(SUM(completion_tokens),0) ct, COALESCE(SUM(total_tokens),0) tt, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?)",
+            (f"-{days} days",)
+        ).fetchone()
+        by_provider = conn.execute(
+            "SELECT provider, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY provider ORDER BY n DESC",
+            (f"-{days} days",)
+        ).fetchall()
     by_token = conn.execute(
         "SELECT user_name, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY token_id ORDER BY n DESC",
         (f"-{days} days",)
@@ -248,12 +430,25 @@ def get_usage_stats(days=30):
     }
 
 
-def get_recent_logs(limit=100):
+def get_recent_logs(limit=100, user_id=None):
     conn = get_db()
-    rows = conn.execute("SELECT * FROM usage_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    if user_id:
+        tids = [r[0] for r in conn.execute("SELECT id FROM user_tokens WHERE user_id = ?", (user_id,)).fetchall()]
+        if not tids:
+            conn.close()
+            return []
+        placeholders = ",".join("?" * len(tids))
+        rows = conn.execute(
+            f"SELECT * FROM usage_logs WHERE token_id IN ({placeholders}) ORDER BY id DESC LIMIT ?",
+            (*tids, limit)
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM usage_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
+
+# ── Providers / Channels / Models ───────────────────
 
 def get_providers():
     conn = get_db()

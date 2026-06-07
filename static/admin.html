@@ -5,11 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Token Proxy - Admin</title>
 <style>
-:root{
-  --bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;
-  --accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--yellow:#fcc419;--radius:6px;
-  --font:system-ui,-apple-system,sans-serif;
-}
+:root{--bg:#0b0d14;--surface:#131620;--border:#1e2233;--text:#dde1ed;--dim:#747b91;--accent:#5c7cfa;--green:#38d9a9;--red:#ff6b6b;--yellow:#fcc419;--radius:6px;--font:system-ui,-apple-system,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
 .sidebar{width:200px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;flex-shrink:0}
@@ -39,93 +35,86 @@ input:focus,select:focus{border-color:var(--accent)}
 .btn-p:hover{opacity:.88}
 .btn-d{color:var(--red);border-color:var(--red)}
 .btn-d:hover{background:rgba(255,107,107,.08)}
-.btn-sm{padding:3px 8px;font-size:11px}
-.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500}
+.btn-sm{font-size:10px;padding:3px 8px}
+.mono{font-family:'SF Mono',Consolas,monospace;font-size:11px;color:var(--accent)}
+.badge{padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500}
 .bg{background:rgba(56,217,169,.12);color:var(--green)}
 .br{background:rgba(255,107,107,.12);color:var(--red)}
 .by{background:rgba(252,196,25,.12);color:var(--yellow)}
-.mono{font-family:'SF Mono','Consolas',monospace;font-size:11px}
+.mt2{margin-top:12px}
+.mt3{margin-top:18px}
+.mb2{margin-bottom:12px}
 .fb{display:flex;justify-content:space-between;align-items:center}
-.mt1{margin-top:4px}.mt2{margin-top:8px}.mt3{margin-top:12px}.mb2{margin-bottom:8px}
-.toast{position:fixed;top:16px;right:16px;z-index:999;padding:10px 16px;border-radius:var(--radius);font-size:12px;animation:si .25s ease;max-width:360px}
-.toast-ok{background:rgba(56,217,169,.15);border:1px solid var(--green);color:var(--green)}
-.toast-err{background:rgba(255,107,107,.15);border:1px solid var(--red);color:var(--red)}
-@keyframes si{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:998}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:22px;width:420px;max-height:80vh;overflow-y:auto}
-.modal h3{margin-bottom:14px;font-size:15px}
-.token-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:'SF Mono','Consolas',monospace;font-size:12px;word-break:break-all;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.empty{text-align:center;padding:32px;color:var(--dim);font-size:12px}
+.empty{padding:30px;text-align:center;color:var(--dim);font-size:12px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:calc(var(--radius)*1.5);padding:24px;width:90%;max-width:420px}
+.modal h3{font-size:14px;margin-bottom:12px}
+.logout-top{padding:9px 16px;margin-top:auto;color:var(--dim);cursor:pointer;font-size:12px;border-top:1px solid var(--border)}
+.logout-top:hover{color:var(--red)}
 </style>
 </head>
 <body>
-
 <div class="sidebar">
-  <h1>AI Token Proxy</h1>
-  <button class="nav-item active" data-p="dashboard">&#9632; 概览</button>
-  <button class="nav-item" data-p="channels">&#9679; 渠道管理</button>
-  <button class="nav-item" data-p="tokens">&#9638; Token管理</button>
-  <button class="nav-item" data-p="models">&#9642; 模型定价</button>
-  <button class="nav-item" data-p="logs">&#9776; 使用日志</button>
+  <h1>⚡ Admin Panel</h1>
+  <button class="nav-item active" data-p="dashboard">Dashboard</button>
+  <button class="nav-item" data-p="users">Users</button>
+  <button class="nav-item" data-p="channels">Channels</button>
+  <button class="nav-item" data-p="tokens">Tokens</button>
+  <button class="nav-item" data-p="models">Pricing</button>
+  <button class="nav-item" data-p="logs">Logs</button>
+  <button class="logout-top" onclick="logout()">Logout</button>
 </div>
-
 <main class="main" id="main"></main>
-
 <script>
-let AK = localStorage.getItem('ak')||'';
+const JWT = localStorage.getItem('aiaiai_jwt');
+const USER = JSON.parse(localStorage.getItem('aiaiai_user')||'{}');
+if (!JWT || !USER.is_admin) { window.location.href = '/login'; }
+
+const H = { 'Authorization': 'Bearer ' + JWT };
 let page = 'dashboard';
 
-function sk(k){localStorage.setItem('ak',k);location.reload()}
-
-async function a(path,opts={}){
-  const h={...opts.headers,'X-Admin-Key':AK};
-  if(opts.body&&typeof opts.body==='object'){h['Content-Type']='application/json';opts.body=JSON.stringify(opts.body)}
-  const r=await fetch('/admin/api'+path,{...opts,headers:h});
-  if(r.status===403)throw new Error('UNAUTH');
-  if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||'Request failed')}
-  return r.json()
+function API(path, opts={}) {
+  return fetch(path, { ...opts, headers: { ...H, ...(opts.headers||{}) } });
 }
 
-function toast(m,t='ok'){const d=document.createElement('div');d.className='toast toast-'+t;d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2800)}
+function nav(p) { page = p; document.querySelectorAll('.nav-item').forEach(e => e.classList.toggle('active', e.dataset.p===p)); r(); }
 
-function cp(t){navigator.clipboard.writeText(t).then(()=>toast('Copied'))}
+function cp(t) { navigator.clipboard.writeText(t).then(() => { /* copied */ }); }
 
-function nav(p){page=p;document.querySelectorAll('.nav-item').forEach(e=>e.classList.toggle('active',e.dataset.p===p));r()}
-
-document.querySelectorAll('.nav-item').forEach(e=>e.addEventListener('click',()=>nav(e.dataset.p)));
-
-function modal(title,body,onok){
-  const o=document.createElement('div');o.className='modal-overlay';
-  o.onclick=e=>{if(e.target===o)o.remove()};
-  o.innerHTML='<div class="modal"><h3>'+title+'</h3>'+body+'<div class="fb mt3"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button><button class="btn btn-p" id="okbtn">Confirm</button></div></div>';
-  document.body.appendChild(o);
-  o.querySelector('#okbtn').onclick=async()=>{try{await onok(o);o.remove()}catch(e){toast(e.message,'err')}}
+function modal(title, body, onOk, okText='Confirm') {
+  const el = document.createElement('div');
+  el.className = 'modal-overlay';
+  el.innerHTML = '<div class="modal"><h3>'+title+'</h3>'+body+'<div class="fb mt3"><button class="btn" onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button><button class="btn btn-p" id="okbtn">'+okText+'</button></div></div>';
+  document.body.appendChild(el);
+  el.querySelector('#okbtn').onclick = async () => { try { await onOk(el); } catch(e) { alert(e); } el.remove(); };
+  el.querySelector('input')?.focus();
 }
 
-if(!AK){
-  document.getElementById('main').innerHTML='<div class="modal-overlay"><div class="modal"><h3>Admin Login</h3><div class="form-g"><label>Password</label><input type="password" id="pw" placeholder="Enter admin password" autofocus></div><div class="fb mt3"><button class="btn btn-p" style="width:100%" onclick="sk(document.getElementById(\'pw\').value)">Login</button></div></div></div>';
-}else{r()}
+function logout() { localStorage.clear(); window.location.href = '/login'; }
 
-async function r(){
-  document.getElementById('main').innerHTML='<div class="empty">Loading...</div>';
-  try{
-    switch(page){
-      case'dashboard':await rd();break;
-      case'channels':await rc();break;
-      case'tokens':await rt();break;
-      case'models':await rm();break;
-      case'logs':await rl();break;
+document.querySelectorAll('.nav-item').forEach(e => e.addEventListener('click', () => nav(e.dataset.p)));
+
+async function r() {
+  const o = document.getElementById('main');
+  try {
+    switch (page) {
+      case 'dashboard': return renderDashboard(o);
+      case 'users': return renderUsers(o);
+      case 'channels': return renderChannels(o);
+      case 'tokens': return renderTokens(o);
+      case 'models': return renderModels(o);
+      case 'logs': return renderLogs(o);
     }
-  }catch(e){
-    if(e.message==='UNAUTH'){localStorage.removeItem('ak');location.reload()}
-    else document.getElementById('main').innerHTML='<div class="empty" style="color:var(--red)">Error: '+e.message+'</div>'
+  } catch (e) {
+    o.innerHTML = '<div class="empty" style="color:var(--red)">Error: ' + e.message + '</div>';
   }
 }
 
-// Dashboard
-async function rd(){
-  const s=await a('/stats?days=30');
-  document.getElementById('main').innerHTML=`
+async function renderDashboard(o) {
+  const r = await API('/admin/api/stats');
+  const s = await r.json();
+  o.innerHTML = `
+    <div style="margin-bottom:20px"><span id="adminName" style="color:var(--dim)">Admin: ${USER.email}</span></div>
     <div class="stats-grid">
       <div class="stat-card"><div class="l">Requests (30d)</div><div class="v">${s.total_requests}</div></div>
       <div class="stat-card"><div class="l">Total Tokens</div><div class="v">${s.total_tokens.toLocaleString()}</div></div>
@@ -138,152 +127,236 @@ async function rd(){
       <table><thead><tr><th>Provider</th><th>Requests</th><th>Tokens</th><th>Cost</th></tr></thead>
       <tbody>${s.by_provider.map(p=>`<tr><td>${p.provider}</td><td>${p.n}</td><td>${p.t.toLocaleString()}</td><td>$${p.cost}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No data</td></tr>'}</tbody></table>
     </div>
-    <div class="card">
-      <div class="section-title">By User</div>
-      <table><thead><tr><th>User</th><th>Requests</th><th>Tokens</th><th>Cost</th></tr></thead>
-      <tbody>${s.by_token.map(p=>`<tr><td>${p.user_name}</td><td>${p.n}</td><td>${p.t.toLocaleString()}</td><td>$${p.cost}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No data</td></tr>'}</tbody></table>
-    </div>`
+  `;
 }
 
-// Channels
-async function rc(){
-  const[{providers},{channels}]=await Promise.all([a('/providers'),a('/channels')]);
-  document.getElementById('main').innerHTML=`
-    <div class="fb mb2"><div class="section-title">Channels (API Keys)</div><button class="btn btn-p" onclick="addCh()">+ Add Channel</button></div>
+async function renderUsers(o) {
+  const r = await API('/admin/api/users');
+  const data = await r.json();
+  const users = data.users || [];
+  o.innerHTML = `
+    <div class="fb mb2"><div class="section-title">Users (${users.length})</div></div>
     <div class="card"><table>
-      <thead><tr><th>Provider</th><th>Name</th><th>API Key</th><th>Weight</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>${channels.map(c=>`<tr>
-        <td>${c.provider_name}</td><td>${c.name||'-'}</td>
-        <td class="mono">${c.api_key}</td><td>${c.weight}</td>
-        <td><span class="badge ${c.enabled?'bg':'br'}">${c.enabled?'Active':'Disabled'}</span></td>
-        <td><button class="btn btn-sm btn-d" onclick="delCh(${c.id})">Delete</button></td>
-      </tr>`).join('')||'<tr><td colspan="6" class="empty">No channels configured</td></tr>'}</tbody>
-    </table></div>`
-}
-
-function addCh(){
-  a('/providers').then(({providers})=>{
-    let opts=providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-    modal('Add Channel',`
-      <div class="form-g"><label>Provider</label><select id="ch-p">${opts}</select></div>
-      <div class="form-g mt2"><label>Name</label><input id="ch-n" placeholder="e.g. Key #1"></div>
-      <div class="form-g mt2"><label>API Key</label><input id="ch-k" placeholder="sk-..." type="password"></div>
-      <div class="form-g mt2"><label>Weight</label><input id="ch-w" type="number" value="1" min="1"></div>
-    `,async(o)=>{
-      await a('/channels',{method:'POST',body:{provider_id:o.querySelector('#ch-p').value,name:o.querySelector('#ch-n').value,api_key:o.querySelector('#ch-k').value,weight:parseInt(o.querySelector('#ch-w').value)||1}});
-      toast('Channel added');rc()
-    })
-  })
-}
-
-async function delCh(id){if(confirm('Delete this channel?')){await a('/channels/'+id,{method:'DELETE'});toast('Deleted');rc()}}
-
-// Tokens
-async function rt(){
-  const{tokens}=await a('/tokens');
-  document.getElementById('main').innerHTML=`
-    <div class="fb mb2"><div class="section-title">User Tokens</div><button class="btn btn-p" onclick="addTk()">+ Create Token</button></div>
-    <div class="card"><table>
-      <thead><tr><th>Name</th><th>Prefix</th><th>Role</th><th>Quota</th><th>RPM</th><th>Status</th><th>Last Used</th><th>Actions</th></tr></thead>
-      <tbody>${tokens.map(t=>`<tr>
-        <td>${t.name||''} ${t.email?'<br><span style="font-size:10px;color:var(--dim)">'+t.email+'</span>':''}</td>
-        <td class="mono">${t.token_prefix}...</td>
-        <td><span class="badge ${t.role==='admin'?'by':''}">${t.role}</span></td>
-        <td>${t.quota<0?'Unlimited':t.used_quota+' / '+t.quota}</td>
-        <td>${t.rate_limit_rpm}/min</td>
-        <td><span class="badge ${t.enabled?'bg':'br'}">${t.enabled?'Active':'Disabled'}</span></td>
-        <td>${t.last_used_at||'-'}</td>
+    <thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Role</th><th>Quota</th><th>Used</th><th>RPM</th><th>Tokens</th><th>Status</th><th></th></tr></thead>
+    <tbody>${users.map(u => `
+      <tr>
+        <td class="mono">${u.id}</td>
+        <td>${u.email}</td>
+        <td>${u.name||'-'}</td>
+        <td><span class="badge ${u.is_admin?'by':'bg'}">${u.is_admin?'Admin':'User'}</span></td>
+        <td>${u.quota<0?'Unlimited':'$'+u.quota}</td>
+        <td>$${u.used_quota.toFixed(3)}</td>
+        <td>${u.rate_limit_rpm}</td>
+        <td>${u.token_count||0}</td>
+        <td><span class="badge ${u.enabled?'bg':'br'}">${u.enabled?'Active':'Disabled'}</span></td>
         <td>
-          <button class="btn btn-sm" onclick="addQ(${t.id})">+Quota</button>
-          <button class="btn btn-sm btn-d" onclick="rvTk(${t.id})" ${!t.enabled?'disabled':''}>Revoke</button>
+          <button class="btn btn-sm" onclick="editUser(${u.id})">Edit</button>
+          ${u.enabled ? '<button class="btn btn-sm btn-d" onclick="toggleUser('+u.id+',false)">Disable</button>' : '<button class="btn btn-sm" onclick="toggleUser('+u.id+',true)">Enable</button>'}
         </td>
-      </tr>`).join('')||'<tr><td colspan="8" class="empty">No tokens</td></tr>'}</tbody>
-    </table></div>`
+      </tr>`).join('')||'<tr><td colspan="10" class="empty">No users</td></tr>'}</tbody>
+    </table></div>
+  `;
 }
 
-function addTk(){
-  modal('Create Token',`
-    <div class="form-g"><label>Name</label><input id="tk-n" placeholder="e.g. Dev Machine"></div>
+function editUser(uid) {
+  API('/admin/api/users').then(r => r.json()).then(data => {
+    const u = data.users.find(x => x.id === uid);
+    if (!u) return;
+    modal('Edit User #'+uid, `
+      <div class="form-g"><label>Email</label><input value="${u.email}" disabled></div>
+      <div class="form-row mt2">
+        <div class="form-g"><label>Quota ($) <small>(-1=unlimited)</small></label><input id="eu-q" type="number" step="0.01" value="${u.quota}"></div>
+        <div class="form-g"><label>RPM</label><input id="eu-r" type="number" value="${u.rate_limit_rpm}" min="1"></div>
+      </div>`,
+      async () => {
+        const quota = parseFloat(document.getElementById('eu-q').value);
+        const rpm = parseInt(document.getElementById('eu-r').value);
+        await API('/admin/api/users/'+uid, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({quota,rpm}) });
+        r();
+      }, 'Save'
+    );
+  });
+}
+
+function toggleUser(uid, enable) {
+  if (!confirm((enable?'Enable':'Disable') + ' this user?')) return;
+  API('/admin/api/users/'+uid, {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ enabled: enable })
+  }).then(() => r());
+}
+
+async function renderChannels(o) {
+  const r = await API('/admin/api/channels');
+  const data = await r.json();
+  const channels = data.channels || [];
+  o.innerHTML = `
+    <div class="fb mb2"><div class="section-title">Channels</div><button class="btn btn-p" onclick="addCh()">+ Add</button></div>
+    <div class="card"><table>
+    <thead><tr><th>ID</th><th>Provider</th><th>Name</th><th>Key</th><th>Weight</th><th>Status</th><th></th></tr></thead>
+    <tbody>${channels.map(c => `<tr>
+      <td class="mono">${c.id}</td><td>${c.provider_name}</td><td>${c.name||'-'}</td>
+      <td class="mono">${c.api_key}</td><td>${c.weight}</td>
+      <td><span class="badge ${c.enabled?'bg':'br'}">${c.enabled?'Active':'Disabled'}</span></td>
+      <td><button class="btn btn-sm btn-d" onclick="delCh(${c.id})">Delete</button></td>
+    </tr>`).join('')||'<tr><td colspan="7" class="empty">No channels</td></tr>'}</tbody>
+    </table></div>
+  `;
+}
+
+async function addCh() {
+  const r = await API('/admin/api/providers');
+  const data = await r.json();
+  const opts = data.providers.map(p => `<option value="${p.id}">${p.name} (${p.id})</option>`).join('');
+  modal('Add Channel', `
+    <div class="form-g"><label>Provider</label><select id="ch-p">${opts}</select></div>
+    <div class="form-g mt2"><label>Name</label><input id="ch-n" placeholder="Key #1"></div>
+    <div class="form-g mt2"><label>API Key</label><input id="ch-k" placeholder="sk-..." type="password"></div>
+    <div class="form-g mt2"><label>Weight</label><input id="ch-w" type="number" value="1" min="1"></div>
+  `, async () => {
+    await API('/admin/api/channels', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        provider_id: document.getElementById('ch-p').value,
+        name: document.getElementById('ch-n').value,
+        api_key: document.getElementById('ch-k').value,
+        weight: parseInt(document.getElementById('ch-w').value) || 1
+      })
+    });
+    r();
+  });
+}
+
+function delCh(cid) { if (confirm('Delete this channel?')) API('/admin/api/channels/'+cid,{method:'DELETE'}).then(()=>r()); }
+
+async function renderTokens(o) {
+  const rt = await API('/admin/api/tokens');
+  const td = await rt.json();
+  const tokens = td.tokens || [];
+  o.innerHTML = `
+    <div class="fb mb2"><div class="section-title">All Tokens</div><button class="btn btn-p" onclick="addTk()">+ Create</button></div>
+    <div class="card"><table>
+    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Token</th><th>Quota</th><th>Used</th><th>Status</th><th></th></tr></thead>
+    <tbody>${tokens.map(t=>`<tr>
+      <td>${t.id}</td><td>${t.name}</td><td>${t.email||'-'}</td>
+      <td class="mono">${t.token_prefix}...</td>
+      <td>${t.quota<0?'-':'$'+t.quota}</td><td>$${t.used_quota.toFixed(3)}</td>
+      <td><span class="badge ${t.enabled?'bg':'br'}">${t.enabled?'Active':'Disabled'}</span></td>
+      <td>
+        <button class="btn btn-sm" onclick="addQ(${t.id})">+Quota</button>
+        <button class="btn btn-sm btn-d" onclick="rvTk(${t.id})" ${!t.enabled?'disabled':''}>Revoke</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="8" class="empty">No tokens</td></tr>'}</tbody>
+    </table></div>
+  `;
+}
+
+function addTk() {
+  modal('Create Token', `
+    <div class="form-g"><label>Name</label><input id="tk-n" placeholder="Dev Machine"></div>
     <div class="form-row mt2">
-      <div class="form-g"><label>Quota ($)</label><input id="tk-q" type="number" value="-1"></div>
+      <div class="form-g"><label>Quota ($) (-1=unlimited)</label><input id="tk-q" type="number" value="-1"></div>
       <div class="form-g"><label>RPM</label><input id="tk-r" type="number" value="60"></div>
     </div>
     <div id="tk-res" style="display:none" class="mt2">
-      <label style="font-size:10px;color:var(--dim)">Token (save it now - shown only once)</label>
+      <div class="section-title">Token (copy now!)</div>
       <div class="token-box mt1"><span id="tk-v"></span><button class="btn btn-sm" onclick="cp(document.getElementById('tk-v').textContent)">Copy</button></div>
     </div>
-  `,async(o)=>{
-    const r=await a('/tokens',{method:'POST',body:{name:o.querySelector('#tk-n').value,quota:parseFloat(o.querySelector('#tk-q').value)||-1,rate_limit_rpm:parseInt(o.querySelector('#tk-r').value)||60}});
-    o.querySelector('#tk-res').style.display='block';o.querySelector('#tk-v').textContent=r.token.token;
-    o.querySelector('#okbtn').remove();rt()
-  })
+  `, async () => {
+    const r = await API('/admin/api/tokens', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: document.getElementById('tk-n').value||'Admin Token',
+        quota: parseFloat(document.getElementById('tk-q').value)||-1,
+        rate_limit_rpm: parseInt(document.getElementById('tk-r').value)||60
+      })
+    });
+    const d = await r.json();
+    document.getElementById('tk-v').textContent = d.token.token;
+    document.getElementById('tk-res').style.display = 'block';
+    document.getElementById('okbtn').textContent = 'Done';
+    document.getElementById('okbtn').onclick = () => { document.querySelector('.modal-overlay').remove(); r(); };
+  });
 }
 
-async function addQ(id){
-  modal('Add Quota','<div class="form-g"><label>Amount (USD)</label><input id="q-v" type="number" step="0.01" min="0.01" value="1"></div>',async(o)=>{
-    await a('/tokens/'+id+'/quota',{method:'POST',body:{amount:parseFloat(o.querySelector('#q-v').value)}});
-    toast('Quota added');rt()
-  })
+function addQ(tid) {
+  modal('Add Quota','<div class="form-g"><label>Amount (USD)</label><input id="q-v" type="number" step="0.01" min="0.01" value="1"></div>', async () => {
+    await API('/admin/api/tokens/'+tid+'/quota', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ amount: parseFloat(document.getElementById('q-v').value) })
+    });
+    r();
+  });
 }
+function rvTk(tid) { if (confirm('Revoke this token?')) API('/admin/api/tokens/'+tid,{method:'DELETE'}).then(()=>r()); }
 
-async function rvTk(id){if(confirm('Revoke this token?')){await a('/tokens/'+id,{method:'DELETE'});toast('Revoked');rt()}}
-
-// Models
-async function rm(){
-  const p=await a('/providers');
-  const all=await Promise.all(p.providers.map(p=>a('/models?provider_id='+p.id)));
-  let models=[];
-  all.forEach((r,i)=>r.models.forEach(m=>models.push({...m,pn:p.providers[i].name})));
-  document.getElementById('main').innerHTML=`
-    <div class="fb mb2"><div class="section-title">Model Pricing</div><button class="btn btn-p" onclick="addMd()">+ Add Model</button></div>
+async function renderModels(o) {
+  const rm = await API('/admin/api/models');
+  const md = await rm.json();
+  const models = md.models || [];
+  o.innerHTML = `
+    <div class="fb mb2"><div class="section-title">Models</div><button class="btn btn-p" onclick="addMd()">+ Add</button></div>
     <div class="card"><table>
-      <thead><tr><th>Model ID</th><th>Display Name</th><th>Provider</th><th>Input Price</th><th>Output Price</th><th>Unit</th><th>Actions</th></tr></thead>
-      <tbody>${models.map(m=>`<tr>
-        <td class="mono">${m.id}</td><td>${m.display_name}</td><td>${m.pn}</td>
-        <td>$${m.input_price}</td><td>$${m.output_price}</td><td>${m.unit_size} tokens</td>
-        <td><button class="btn btn-sm btn-d" onclick="delMd('${m.provider_id}','${m.id}')">Delete</button></td>
-      </tr>`).join('')||'<tr><td colspan="7" class="empty">No models</td></tr>'}</tbody>
-    </table></div>`
+    <thead><tr><th>ID</th><th>Name</th><th>Provider</th><th>Input ($/1K)</th><th>Output ($/1K)</th><th>Unit</th><th></th></tr></thead>
+    <tbody>${models.map(m=>`<tr>
+      <td class="mono">${m.id}</td><td>${m.display_name}</td><td>${m.provider_name}</td>
+      <td>$${m.input_price}</td><td>$${m.output_price}</td><td>${m.unit_size}</td>
+      <td><button class="btn btn-sm btn-d" onclick="delMd('${m.provider_id}','${m.id}')">Delete</button></td>
+    </tr>`).join('')||'<tr><td colspan="7" class="empty">No models</td></tr>'}</tbody>
+    </table></div>
+  `;
 }
 
-function addMd(){
-  a('/providers').then(({providers})=>{
-    let opts=providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-    modal('Add Model',`
-      <div class="form-g"><label>Provider</label><select id="md-p">${opts}</select></div>
-      <div class="form-row mt2">
-        <div class="form-g" style="flex:2"><label>Model ID</label><input id="md-i" placeholder="gpt-4o"></div>
-        <div class="form-g" style="flex:2"><label>Display Name</label><input id="md-d" placeholder="GPT-4o"></div>
-      </div>
-      <div class="form-row mt2">
-        <div class="form-g"><label>Input Price</label><input id="md-in" type="number" step="0.001" value="1"></div>
-        <div class="form-g"><label>Output Price</label><input id="md-out" type="number" step="0.001" value="1"></div>
-        <div class="form-g"><label>Unit (tokens)</label><input id="md-u" type="number" value="1000"></div>
-      </div>
-    `,async(o)=>{
-      await a('/models',{method:'POST',body:{model_id:o.querySelector('#md-i').value,provider_id:o.querySelector('#md-p').value,display_name:o.querySelector('#md-d').value,input_price:parseFloat(o.querySelector('#md-in').value),output_price:parseFloat(o.querySelector('#md-out').value),unit_size:parseInt(o.querySelector('#md-u').value)||1000}});
-      toast('Model added');rm()
-    })
-  })
+async function addMd() {
+  const r = await API('/admin/api/providers');
+  const data = await r.json();
+  const opts = data.providers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  modal('Add Model', `
+    <div class="form-g"><label>Provider</label><select id="md-p">${opts}</select></div>
+    <div class="form-row mt2">
+      <div class="form-g" style="flex:2"><label>Model ID</label><input id="md-i" placeholder="gpt-4o"></div>
+      <div class="form-g" style="flex:2"><label>Display Name</label><input id="md-d" placeholder="GPT-4o"></div>
+    </div>
+    <div class="form-row mt2">
+      <div class="form-g"><label>Input Price</label><input id="md-in" type="number" step="0.001" value="1"></div>
+      <div class="form-g"><label>Output Price</label><input id="md-out" type="number" step="0.001" value="1"></div>
+      <div class="form-g"><label>Unit (tokens)</label><input id="md-u" type="number" value="1000"></div>
+    </div>
+  `, async () => {
+    await API('/admin/api/models', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model_id: document.getElementById('md-i').value,
+        provider_id: document.getElementById('md-p').value,
+        display_name: document.getElementById('md-d').value,
+        input_price: parseFloat(document.getElementById('md-in').value),
+        output_price: parseFloat(document.getElementById('md-out').value),
+        unit_size: parseInt(document.getElementById('md-u').value)
+      })
+    });
+    r();
+  });
 }
+function delMd(pid,mid) { if (confirm('Delete model?')) API('/admin/api/models/'+pid+'/'+mid,{method:'DELETE'}).then(()=>r()); }
 
-async function delMd(pid,mid){if(confirm('Delete model '+mid+'?')){await a('/models/'+pid+'/'+mid,{method:'DELETE'});toast('Deleted');rm()}}
-
-// Logs
-async function rl(){
-  const{logs}=await a('/logs?limit=200');
-  document.getElementById('main').innerHTML=`
-    <div class="section-title">Recent Usage Logs</div>
+async function renderLogs(o) {
+  const r = await API('/admin/api/logs?limit=100');
+  const data = await r.json();
+  const logs = data.logs || [];
+  o.innerHTML = `
+    <div class="section-title">Recent Logs</div>
     <div class="card"><table>
-      <thead><tr><th>Time</th><th>User</th><th>Provider</th><th>Model</th><th>Prompt</th><th>Completion</th><th>Total</th><th>Cost</th><th>Status</th></tr></thead>
-      <tbody>${logs.map(l=>`<tr>
-        <td class="mono">${l.created_at}</td><td>${l.user_name||'-'}</td><td>${l.provider}</td><td>${l.model}</td>
-        <td>${l.prompt_tokens.toLocaleString()}</td><td>${l.completion_tokens.toLocaleString()}</td>
-        <td>${l.total_tokens.toLocaleString()}</td><td>$${l.quota_used}</td>
-        <td><span class="badge ${l.status==='success'?'bg':'br'}">${l.status}</span></td>
-      </tr>`).join('')||'<tr><td colspan="9" class="empty">No logs yet</td></tr>'}</tbody>
-    </table></div>`
+    <thead><tr><th>Time</th><th>User</th><th>Provider</th><th>Model</th><th>Prompt</th><th>Comp</th><th>Cost</th><th>Status</th></tr></thead>
+    <tbody>${logs.map(l=>`<tr>
+      <td class="mono">${l.created_at}</td><td>${l.user_name||'-'}</td><td>${l.provider}</td><td>${l.model}</td>
+      <td>${l.prompt_tokens}</td><td>${l.completion_tokens}</td><td>$${l.quota_used.toFixed(5)}</td>
+      <td><span class="badge ${l.status==='success'?'bg':'br'}">${l.status}</span></td>
+    </tr>`).join('')||'<tr><td colspan="8" class="empty">No logs</td></tr>'}</tbody>
+    </table></div>
+  `;
 }
+
+r();
 </script>
 </body>
 </html>

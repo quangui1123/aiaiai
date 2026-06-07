@@ -96,3 +96,38 @@ class ModelRequest(BaseModel):
     input_price: float
     output_price: float
     unit_size: int = 1000
+
+
+# ── Auth models ────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    ok: bool = True
+    token: str = ""
+    user: dict = {}
+
+
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class TokenCreateUserRequest(BaseModel):
+    name: str = "Default"
+
+
+class UserUpdateRequest(BaseModel):
+    quota: Optional[float] = None
+    rate_limit_rpm: Optional[int] = None
+    enabled: Optional[bool] = None
+    is_admin: Optional[bool] = None
