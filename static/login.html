@@ -50,7 +50,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div class="card hidden" id="fRegister">
 <h1>创建账户</h1><p class="sub">注册即可获取 API 令牌</p>
 <div class="field"><label>邮箱</label><input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"></div>
-<div class="field"><label>密码</label><input type="password" id="regPassword" placeholder="至少 4 位" autocomplete="new-password"></div>
+<div class="field"><label>密码</label><input type="password" id="regPassword" placeholder="至少 6 位" autocomplete="new-password"></div>
 <button class="btn" onclick="doRegister()" id="regBtn">创建账户</button>
 <div class="switch">已有账户？<a onclick="show('login')">登录</a></div>
 </div>
@@ -77,10 +77,10 @@ finally{btn.disabled=false;btn.textContent='登录'}}
 
 async function doRegister(){
 hideMsgs();var email=document.getElementById('regEmail').value.trim(),pw=document.getElementById('regPassword').value;
-if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<4){err('密码至少4位');return}
+if(!email.includes('@')){err('请输入有效邮箱');return}if(pw.length<6){err('密码至少6位');return}
 var btn=document.getElementById('regBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>注册中...';
 try{var r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw,name:email.split('@')[0]})});var d=await r.json();
-if(!r.ok){err('注册失败，邮箱可能已被使用');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));ok('注册成功！');
+if(!r.ok){err('注册失败，邮箱可能已被使用');return}localStorage.setItem('aiaiai_jwt',d.token);localStorage.setItem('aiaiai_user',JSON.stringify(d.user));if(d.api_token)localStorage.setItem('aiaiai_new_token',d.api_token);ok('注册成功！');
 setTimeout(function(){window.location.href='/dashboard'},600)}catch(e){err('注册失败，请重试')}
 finally{btn.disabled=false;btn.textContent='创建账户'}}
 

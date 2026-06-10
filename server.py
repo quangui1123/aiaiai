@@ -1,7 +1,11 @@
-import os, uuid, time, httpx, jwt
+import os
+import time
+import httpx
+import jwt
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -11,34 +15,35 @@ from database import (
     init_db, create_token, verify_token, list_tokens, revoke_token, update_token, add_quota,
     check_rate_limit, log_usage, get_usage_stats, get_recent_logs,
     get_providers, get_channels, add_channel, delete_channel, update_channel,
-    get_channel_key, get_models, get_model_price, add_model, delete_model,
-    create_user, get_user_by_email, get_user_by_id, list_users, update_user, update_user_password, get_token_by_id,
-    verify_password, check_user_quota, add_user_quota
+    get_models, get_model_price, add_model, delete_model,
+    create_user, get_user_by_email, get_user_by_id, list_users, update_user, update_user_password,
+    get_token_by_id, verify_password, add_user_quota, resolve_model, get_configured_provider_ids,
+    get_all_channel_keys,
 )
 from models import (
-    ChatRequest, ChatResponse, ModelList, ModelItem,
+    ChatRequest, ModelList, ModelItem,
     TokenCreateRequest, TokenUpdateRequest, QuotaAddRequest,
     ChannelRequest, ChannelUpdateRequest, ModelRequest,
-    RegisterRequest, LoginRequest, AuthResponse, PasswordChangeRequest,
-    TokenCreateUserRequest, UserUpdateRequest
+    RegisterRequest, LoginRequest, PasswordChangeRequest,
+    TokenCreateUserRequest, UserUpdateRequest,
 )
 from providers import create_adapter
 
 load_dotenv()
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@aiaiai.com")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@aiaiai.com").strip().lower()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 DEFAULT_QUOTA = float(os.getenv("DEFAULT_QUOTA", "0.5"))
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 
-# Ensure JWT_SECRET is set
 import secrets as _secrets
 if not JWT_SECRET:
     JWT_SECRET = _secrets.token_urlsafe(32)
 
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 168  # 7 days
+JWT_EXPIRE_HOURS = 168
 
 
 def create_jwt(user_id: int, email: str, is_admin: bool) -> str:
@@ -59,13 +64,18 @@ def decode_jwt(token: str) -> dict | None:
         return None
 
 
+def openai_error(status: int, message: str, err_type: str = "invalid_request_error"):
+    return JSONResponse(
+        status_code=status,
+        content={"error": {"message": message, "type": err_type, "code": None}},
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    # Ensure admin user exists
-    for i in range(5):
-        admin = get_user_by_email(ADMIN_EMAIL)
-        if admin:
+    for _ in range(5):
+        if get_user_by_email(ADMIN_EMAIL, include_disabled=True):
             break
         try:
             create_user(
@@ -73,39 +83,56 @@ async def lifespan(app: FastAPI):
                 password=ADMIN_PASSWORD,
                 name="Admin",
                 is_admin=True,
-                quota=-1  # unlimited
+                quota=-1,
             )
             break
         except Exception:
-            import time
             time.sleep(0.5)
     yield
 
 
-app = FastAPI(title="AI Token Proxy", version="2.1.0", lifespan=lifespan)
+app = FastAPI(title="AI Token Proxy", version="2.2.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if CORS_ORIGINS == "*" else [o.strip() for o in CORS_ORIGINS.split(",")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 security = HTTPBearer(auto_error=False)
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-# ── Auth dependencies ──────────────────────────────
+def extract_bearer_token(authorization: str | None, credentials: HTTPAuthorizationCredentials | None) -> str | None:
+    if credentials and credentials.credentials:
+        return credentials.credentials
+    if authorization:
+        parts = authorization.split(" ", 1)
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            return parts[1].strip()
+        return authorization.strip()
+    return None
 
-async def get_token_user(credentials: HTTPAuthorizationCredentials | None = Depends(security)):
-    """Auth by API token (sk-xxx). Used for /v1/* endpoints."""
-    if not credentials:
-        raise HTTPException(401, "Missing authorization header")
-    td = verify_token(credentials.credentials)
+
+async def get_token_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+):
+    token = extract_bearer_token(request.headers.get("authorization"), credentials)
+    if not token:
+        raise HTTPException(401, detail={"error": {"message": "Missing authorization header", "type": "invalid_request_error"}})
+    td = verify_token(token)
     if not td:
-        raise HTTPException(401, "Invalid or revoked token, or quota exceeded")
+        raise HTTPException(401, detail={"error": {"message": "Invalid or revoked token, or quota exceeded", "type": "invalid_request_error"}})
     return td
 
 
 async def get_current_user(authorization: str | None = Header(None)):
-    """Auth by JWT. Used for web dashboard endpoints."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Missing authorization header")
-    token = authorization.split(" ", 1)[1]
-    payload = decode_jwt(token)
+    payload = decode_jwt(authorization.split(" ", 1)[1])
     if not payload:
         raise HTTPException(401, "Invalid or expired token")
     user = get_user_by_id(int(payload["sub"]))
@@ -115,23 +142,13 @@ async def get_current_user(authorization: str | None = Header(None)):
 
 
 async def get_admin_user(user: dict = Depends(get_current_user)):
-    """Require admin role."""
     if not user.get("is_admin"):
         raise HTTPException(403, "Admin access required")
     return user
 
 
-def admin_required(x_admin_key: str | None = Header(None)):
-    """Legacy admin key auth for backward compat."""
-    if x_admin_key != ADMIN_PASSWORD:
-        raise HTTPException(403, "Invalid admin key")
-    return True
-
-
-# ── Pricing ────────────────────────────────────────
-
-def calc_cost(model_id, prompt_tokens, completion_tokens):
-    price = get_model_price(model_id)
+def calc_cost(model_id, provider_id, prompt_tokens, completion_tokens):
+    price = get_model_price(model_id, provider_id)
     if not price:
         return 0
     units = price["unit_size"]
@@ -140,87 +157,148 @@ def calc_cost(model_id, prompt_tokens, completion_tokens):
     return round(in_cost + out_cost, 6)
 
 
-def resolve_provider(model_id: str) -> str | None:
-    models = get_models()
-    for m in models:
-        if m["id"] == model_id:
-            return m["provider_id"]
-    for m in sorted(models, key=lambda x: -len(x["id"])):
-        if model_id.startswith(m["id"]):
-            return m["provider_id"]
-    return None
+def effective_rpm(td: dict) -> int:
+    if td.get("user_id"):
+        user = get_user_by_id(td["user_id"])
+        if user and user.get("rate_limit_rpm") is not None:
+            return user["rate_limit_rpm"]
+    rpm = td.get("rate_limit_rpm")
+    return rpm if rpm is not None else 60
 
 
-# ── Chat completions ──────────────────────────────
+def read_html(name: str) -> HTMLResponse:
+    path = os.path.join(STATIC_DIR, name)
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse(f"<h1>{name} not found</h1>", 404)
+
+
+def estimate_tokens(text: str) -> int:
+    if not text:
+        return 0
+    return max(1, len(text) // 3)
+
 
 @app.post("/v1/chat/completions")
 async def chat_completions(req: ChatRequest, td: dict = Depends(get_token_user)):
     tid = td["id"]
     uname = td["name"]
-    rpm = td["rate_limit_rpm"]
+    rpm = effective_rpm(td)
 
     if not check_rate_limit(tid, rpm):
-        raise HTTPException(429, "Rate limit exceeded")
+        return openai_error(429, "Rate limit exceeded", "rate_limit_error")
 
-    provider_id = req.provider or resolve_provider(req.model)
-    if not provider_id:
-        raise HTTPException(400, f"Unknown model: {req.model}")
+    model_info = resolve_model(req.model, req.provider)
+    if not model_info:
+        return openai_error(400, f"Unknown model: {req.model}")
 
-    api_key, channel_id = get_channel_key(provider_id)
-    if not api_key:
-        raise HTTPException(503, f"Provider '{provider_id}' has no configured channels")
+    provider_id = model_info["provider_id"]
+    actual_model = model_info["id"]
+
+    channels = get_all_channel_keys(provider_id)
+    if not channels:
+        return openai_error(503, f"No API key configured for provider '{provider_id}'. Add a channel in admin panel.")
 
     providers = get_providers()
-    pinfo = next((p for p in providers if p["id"] == provider_id), None)
+    pinfo = next((p for p in providers if p["id"] == provider_id and p["enabled"]), None)
     if not pinfo:
-        raise HTTPException(503, f"Provider '{provider_id}' not found")
+        return openai_error(503, f"Provider '{provider_id}' is disabled or not found")
 
-    try:
-        adapter = await create_adapter(provider_id, api_key, pinfo["base_url"])
-    except Exception as e:
-        await log_usage(tid, uname, provider_id, req.model, 0, 0, 0, 0, "error")
-        raise HTTPException(502, str(e))
+    req_copy = req.model_copy(update={"model": actual_model})
+    prompt_est = sum(estimate_tokens(m.content) for m in req.messages)
+    last_error = None
 
-    try:
-        if req.stream:
-            async def generate():
-                try:
-                    async for chunk in adapter.chat_stream(req):
-                        yield chunk
-                except Exception:
-                    pass
-                finally:
-                    await log_usage(tid, uname, provider_id, req.model, 0, 0, 0, 0, "success")
-                    await adapter.close()
-            return StreamingResponse(generate(), media_type="text/event-stream")
-        else:
-            resp = await adapter.chat(req)
-            cost = calc_cost(req.model, resp.usage.prompt_tokens, resp.usage.completion_tokens)
-            await log_usage(tid, uname, provider_id, req.model,
-                            resp.usage.prompt_tokens, resp.usage.completion_tokens,
-                            resp.usage.total_tokens, cost, "success")
+    for api_key, _channel_id in channels:
+        adapter = None
+        try:
+            adapter = await create_adapter(provider_id, api_key, pinfo["base_url"])
+
+            if req.stream:
+                async def generate_fixed(ad=adapter):
+                    pt, ct, tt, content_len = 0, 0, 0, 0
+                    try:
+                        async for chunk in ad.chat_stream(req_copy):
+                            if chunk.startswith("data: "):
+                                payload = chunk[6:].strip()
+                                if payload != "[DONE]":
+                                    try:
+                                        import json as _json
+                                        data = _json.loads(payload)
+                                        usage = data.get("usage")
+                                        if usage:
+                                            pt = usage.get("prompt_tokens", pt)
+                                            ct = usage.get("completion_tokens", ct)
+                                            tt = usage.get("total_tokens", tt)
+                                        delta = (data.get("choices") or [{}])[0].get("delta", {})
+                                        if delta.get("content"):
+                                            content_len += len(delta["content"])
+                                    except Exception:
+                                        pass
+                            yield chunk
+                        if pt == 0:
+                            pt = prompt_est
+                        if ct == 0 and content_len:
+                            ct = estimate_tokens("x" * content_len)
+                        cost = calc_cost(actual_model, provider_id, pt, ct)
+                        log_usage(tid, uname, provider_id, actual_model, pt, ct, tt or (pt + ct), cost, "success")
+                    except Exception:
+                        log_usage(tid, uname, provider_id, actual_model, 0, 0, 0, 0, "error")
+                        raise
+                    finally:
+                        await ad.close()
+
+                return StreamingResponse(
+                    generate_fixed(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "X-Accel-Buffering": "no",
+                    },
+                )
+
+            resp = await adapter.chat(req_copy)
+            cost = calc_cost(actual_model, provider_id, resp.usage.prompt_tokens, resp.usage.completion_tokens)
+            log_usage(
+                tid, uname, provider_id, actual_model,
+                resp.usage.prompt_tokens, resp.usage.completion_tokens,
+                resp.usage.total_tokens, cost, "success",
+            )
             await adapter.close()
             return resp
-    except httpx.HTTPStatusError as e:
-        await adapter.close()
-        await log_usage(tid, uname, provider_id, req.model, 0, 0, 0, 0, "error")
-        detail = ""
-        try:
-            detail = e.response.json()
-        except Exception:
-            detail = e.response.text[:500] if e.response.text else ""
-        raise HTTPException(502, detail=f"Upstream {e.response.status_code}: {detail}")
-    except Exception as e:
-        await adapter.close()
-        await log_usage(tid, uname, provider_id, req.model, 0, 0, 0, 0, "error")
-        raise HTTPException(502, detail=str(e))
 
+        except httpx.HTTPStatusError as e:
+            last_error = e
+            if adapter:
+                await adapter.close()
+            if e.response.status_code in (401, 403, 429):
+                continue
+            detail = ""
+            try:
+                detail = e.response.json()
+                if isinstance(detail, dict) and "error" in detail:
+                    return JSONResponse(status_code=e.response.status_code, content=detail)
+            except Exception:
+                detail = e.response.text[:500] if e.response.text else str(e)
+            return openai_error(502, f"Upstream {e.response.status_code}: {detail}", "upstream_error")
+        except Exception as e:
+            last_error = e
+            if adapter:
+                await adapter.close()
+            continue
 
-# ── Models ────────────────────────────────────────
+    log_usage(tid, uname, provider_id, actual_model, 0, 0, 0, 0, "error")
+    msg = str(last_error) if last_error else "All channels failed"
+    return openai_error(502, msg, "server_error")
+
 
 @app.get("/v1/models")
-async def list_models(td: dict = Depends(get_token_user)):
+async def list_models_api(td: dict = Depends(get_token_user)):
+    configured = get_configured_provider_ids()
     models = get_models()
+    if configured:
+        models = [m for m in models if m["provider_id"] in configured]
     data = [
         ModelItem(id=m["id"], created=int(time.time()), owned_by=m["provider_name"])
         for m in models
@@ -228,136 +306,110 @@ async def list_models(td: dict = Depends(get_token_user)):
     return ModelList(data=data)
 
 
-# ── Pages ─────────────────────────────────────────
-
 @app.get("/admin")
 async def admin_panel():
-    p = os.path.join(STATIC_DIR, "admin.html")
-    return HTMLResponse(open(p, encoding="utf-8").read()) if os.path.exists(p) else HTMLResponse("<h1>Admin panel not found</h1>", 404)
+    return read_html("admin.html")
 
 
 @app.get("/pricing")
 async def pricing_page():
-    p = os.path.join(STATIC_DIR, "pricing.html")
-    return HTMLResponse(open(p, encoding="utf-8").read()) if os.path.exists(p) else HTMLResponse("<h1>Pricing page not found</h1>", 404)
+    return read_html("pricing.html")
 
 
 @app.get("/login")
 async def login_page():
-    p = os.path.join(STATIC_DIR, "login.html")
-    return HTMLResponse(open(p, encoding="utf-8").read()) if os.path.exists(p) else HTMLResponse("<h1>Login page not found</h1>", 404)
+    return read_html("login.html")
 
 
 @app.get("/dashboard")
 async def dashboard_page():
-    p = os.path.join(STATIC_DIR, "dashboard.html")
-    return HTMLResponse(open(p, encoding="utf-8").read()) if os.path.exists(p) else HTMLResponse("<h1>Dashboard not found</h1>", 404)
+    return read_html("dashboard.html")
 
 
 @app.get("/")
 async def index():
-    p = os.path.join(STATIC_DIR, "index.html")
-    return HTMLResponse(open(p, encoding="utf-8").read()) if os.path.exists(p) else HTMLResponse("<h1>Index not found</h1>", 404)
+    return read_html("index.html")
 
-
-# ── Auth endpoints ────────────────────────────────
 
 @app.post("/api/auth/register")
 async def auth_register(body: RegisterRequest):
     email = body.email.strip().lower()
     if not email or "@" not in email:
         raise HTTPException(400, "Invalid email")
-    if len(body.password) < 4:
-        raise HTTPException(400, "Password must be at least 4 characters")
-
-    existing = get_user_by_email(email)
-    if existing:
+    if len(body.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    if get_user_by_email(email, include_disabled=True):
         raise HTTPException(400, "Email already registered")
 
-    is_admin = (email == ADMIN_EMAIL.strip().lower())
-    user = create_user(email=email, password=body.password, name=body.name or email.split("@")[0], is_admin=is_admin, quota=DEFAULT_QUOTA)
+    user = create_user(
+        email=email,
+        password=body.password,
+        name=body.name or email.split("@")[0],
+        is_admin=False,
+        quota=DEFAULT_QUOTA,
+    )
     if not user:
         raise HTTPException(400, "Registration failed")
 
-    # Auto-create first API token
-    td = create_token(name=f"{user['name']}'s Token", email=email, role="user", quota=-1, rate_limit_rpm=30, user_id=user["id"])
-
+    td = create_token(
+        name=f"{user['name']}'s Token",
+        email=email,
+        role="user",
+        quota=-1,
+        rate_limit_rpm=30,
+        user_id=user["id"],
+    )
     jwt_token = create_jwt(user["id"], user["email"], bool(user["is_admin"]))
     return {
         "ok": True,
         "token": jwt_token,
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "is_admin": bool(user["is_admin"]),
-            "quota": user["quota"],
-            "used_quota": user["used_quota"],
-            "rate_limit_rpm": user["rate_limit_rpm"],
-        },
-        "api_token": td["token"]
+        "user": _user_payload(user),
+        "api_token": td["token"],
     }
 
 
 @app.post("/api/auth/login")
 async def auth_login(body: LoginRequest):
     email = body.email.strip().lower()
-    user = get_user_by_email(email)
+    user = get_user_by_email(email, include_disabled=True)
     if not user:
         raise HTTPException(401, "Invalid email or password")
-
     if not verify_password(body.password, user["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
-
     if not user["enabled"]:
         raise HTTPException(403, "Account disabled")
 
     jwt_token = create_jwt(user["id"], user["email"], bool(user["is_admin"]))
+    return {"ok": True, "token": jwt_token, "user": _user_payload(user)}
+
+
+def _user_payload(user: dict) -> dict:
     return {
-        "ok": True,
-        "token": jwt_token,
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "is_admin": bool(user["is_admin"]),
-            "quota": user["quota"],
-            "used_quota": user["used_quota"],
-            "rate_limit_rpm": user["rate_limit_rpm"],
-        }
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "is_admin": bool(user["is_admin"]),
+        "quota": user["quota"],
+        "used_quota": user["used_quota"],
+        "rate_limit_rpm": user["rate_limit_rpm"],
     }
 
 
 @app.get("/api/auth/me")
 async def auth_me(user: dict = Depends(get_current_user)):
     tokens = list_tokens(user_id=user["id"])
-    return {
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "is_admin": bool(user["is_admin"]),
-            "quota": user["quota"],
-            "used_quota": user["used_quota"],
-            "rate_limit_rpm": user["rate_limit_rpm"],
-            "enabled": bool(user["enabled"]),
-            "created_at": user["created_at"],
-        },
-        "tokens": tokens
-    }
+    return {"user": {**_user_payload(user), "enabled": bool(user["enabled"]), "created_at": user["created_at"]}, "tokens": tokens}
 
 
 @app.patch("/api/auth/password")
 async def auth_change_password(body: PasswordChangeRequest, user: dict = Depends(get_current_user)):
     if not verify_password(body.old_password, user["password_hash"]):
         raise HTTPException(400, "Old password is incorrect")
-    if len(body.new_password) < 4:
-        raise HTTPException(400, "New password must be at least 4 characters")
+    if len(body.new_password) < 6:
+        raise HTTPException(400, "New password must be at least 6 characters")
     update_user_password(user["id"], body.new_password)
     return {"ok": True}
 
-
-# ── User API ──────────────────────────────────────
 
 @app.post("/api/user/tokens")
 async def user_create_token(body: TokenCreateUserRequest, user: dict = Depends(get_current_user)):
@@ -365,23 +417,21 @@ async def user_create_token(body: TokenCreateUserRequest, user: dict = Depends(g
         name=body.name or f"{user['name']}'s Token",
         email=user["email"],
         role="user",
-        quota=-1,  # Use user-level quota
-        rate_limit_rpm=30,
-        user_id=user["id"]
+        quota=-1,
+        rate_limit_rpm=user.get("rate_limit_rpm") or 30,
+        user_id=user["id"],
     )
     return {"ok": True, "token": td}
 
 
 @app.get("/api/user/tokens")
 async def user_list_tokens(user: dict = Depends(get_current_user)):
-    tokens = list_tokens(user_id=user["id"])
-    return {"tokens": tokens}
+    return {"tokens": list_tokens(user_id=user["id"])}
 
 
 @app.delete("/api/user/tokens/{tid}")
 async def user_delete_token(tid: int, user: dict = Depends(get_current_user)):
-    td = get_token_by_id(tid, user_id=user["id"])
-    if not td:
+    if not get_token_by_id(tid, user_id=user["id"]):
         raise HTTPException(404, "Token not found")
     revoke_token(tid)
     return {"ok": True}
@@ -389,12 +439,8 @@ async def user_delete_token(tid: int, user: dict = Depends(get_current_user)):
 
 @app.get("/api/user/usage")
 async def user_usage(user: dict = Depends(get_current_user)):
-    stats = get_usage_stats(user_id=user["id"])
-    logs = get_recent_logs(limit=50, user_id=user["id"])
-    return {"stats": stats, "logs": logs}
+    return {"stats": get_usage_stats(user_id=user["id"]), "logs": get_recent_logs(limit=50, user_id=user["id"])}
 
-
-# ── Admin API: Stats ──────────────────────────────
 
 @app.get("/admin/api/stats")
 async def api_stats(days: int = 30, admin: dict = Depends(get_admin_user)):
@@ -406,15 +452,11 @@ async def api_logs(limit: int = 100, admin: dict = Depends(get_admin_user)):
     return {"logs": get_recent_logs(limit)}
 
 
-# ── Admin API: Users ──────────────────────────────
-
 @app.get("/admin/api/users")
 async def api_users(admin: dict = Depends(get_admin_user)):
     users = list_users()
-    # Attach token count to each user
     for u in users:
-        tokens = list_tokens(user_id=u["id"])
-        u["token_count"] = len(tokens)
+        u["token_count"] = len(list_tokens(user_id=u["id"]))
     return {"users": users}
 
 
@@ -424,32 +466,33 @@ async def api_update_user(uid: int, body: UserUpdateRequest, admin: dict = Depen
     return {"ok": True}
 
 
+@app.post("/admin/api/users/{uid}/quota")
+async def api_add_user_quota(uid: int, body: QuotaAddRequest, admin: dict = Depends(get_admin_user)):
+    add_user_quota(uid, body.amount)
+    return {"ok": True}
+
+
 @app.get("/admin/api/users/{uid}/tokens")
 async def api_user_tokens(uid: int, admin: dict = Depends(get_admin_user)):
-    tokens = list_tokens(user_id=uid)
-    return {"tokens": tokens}
+    return {"tokens": list_tokens(user_id=uid)}
 
 
 @app.get("/admin/api/users/{uid}/usage")
 async def api_user_usage(uid: int, admin: dict = Depends(get_admin_user)):
-    stats = get_usage_stats(user_id=uid)
-    logs = get_recent_logs(limit=50, user_id=uid)
-    return {"stats": stats, "logs": logs}
+    return {"stats": get_usage_stats(user_id=uid), "logs": get_recent_logs(limit=50, user_id=uid)}
 
-
-# ── Admin API: Providers ──────────────────────────
 
 @app.get("/admin/api/providers")
 async def api_providers(admin: dict = Depends(get_admin_user)):
     providers = get_providers()
     models_list = get_models()
+    configured = get_configured_provider_ids()
     for p in providers:
-        p["channel_count"] = len([c for c in get_channels(p["id"])])
+        p["channel_count"] = len([c for c in get_channels(p["id"]) if c.get("enabled", 1)])
         p["model_count"] = len([m for m in models_list if m["provider_id"] == p["id"]])
+        p["configured"] = p["id"] in configured
     return {"providers": providers}
 
-
-# ── Admin API: Channels ───────────────────────────
 
 @app.get("/admin/api/channels")
 async def api_channels(provider_id: str | None = None, admin: dict = Depends(get_admin_user)):
@@ -458,7 +501,9 @@ async def api_channels(provider_id: str | None = None, admin: dict = Depends(get
 
 @app.post("/admin/api/channels")
 async def api_add_channel(body: ChannelRequest, admin: dict = Depends(get_admin_user)):
-    add_channel(body.provider_id, body.name, body.api_key, body.weight)
+    if not body.api_key.strip():
+        raise HTTPException(400, "API key is required")
+    add_channel(body.provider_id, body.name, body.api_key.strip(), body.weight)
     return {"ok": True}
 
 
@@ -473,8 +518,6 @@ async def api_delete_channel(cid: int, admin: dict = Depends(get_admin_user)):
     delete_channel(cid)
     return {"ok": True}
 
-
-# ── Admin API: Models ─────────────────────────────
 
 @app.get("/admin/api/models")
 async def api_models(provider_id: str | None = None, admin: dict = Depends(get_admin_user)):
@@ -492,8 +535,6 @@ async def api_delete_model(provider_id: str, model_id: str, admin: dict = Depend
     delete_model(model_id, provider_id)
     return {"ok": True}
 
-
-# ── Admin API: Tokens (legacy) ────────────────────
 
 @app.get("/admin/api/tokens")
 async def api_tokens(admin: dict = Depends(get_admin_user)):
@@ -524,51 +565,38 @@ async def api_add_quota(tid: int, body: QuotaAddRequest, admin: dict = Depends(g
     return {"ok": True}
 
 
-# ── Public API: Self-serve token (now creates user) ─
-
-@app.post("/api/public/register")
-async def public_register(request: Request):
-    try:
-        body_req = await request.json()
-    except Exception:
-        raise HTTPException(400, "Invalid JSON")
-    name = body_req.get("name", "").strip()
-    email = body_req.get("email", "").strip()
-    if not name:
-        raise HTTPException(400, "Name is required")
-    # Check if user exists, if so just return existing info
-    user = get_user_by_email(email) if email else None
-    if user:
-        tokens = list_tokens(user_id=user["id"])
-        if tokens:
-            return {"ok": True, "existing_user": True, "message": "Email already registered. Please log in."}
-    quota = DEFAULT_QUOTA
-    td = create_token(name=name, email=email, role="user", quota=quota, rate_limit_rpm=30)
-    return {"ok": True, "token": td["token"], "name": name, "quota": quota}
-
-
-# ── Public API: Models & Pricing ──────────────────
-
 @app.get("/api/public/models")
 async def public_models():
+    configured = get_configured_provider_ids()
     models = get_models()
+    if configured:
+        models = [m for m in models if m["provider_id"] in configured]
     return {
         "models": [
             {
                 "id": m["id"],
                 "display_name": m["display_name"],
                 "provider": m["provider_name"],
+                "provider_id": m["provider_id"],
                 "input_price": m["input_price"],
                 "output_price": m["output_price"],
                 "unit_size": m["unit_size"],
-                "unit_label": f"per {m['unit_size']} tokens"
+                "unit_label": f"per {m['unit_size']} tokens",
             }
             for m in models
         ]
     }
 
 
-# ── Health ────────────────────────────────────────
+@app.get("/api/public/status")
+async def public_status():
+    configured = get_configured_provider_ids()
+    return {
+        "status": "ok",
+        "providers_configured": len(configured),
+        "models_available": len([m for m in get_models() if m["provider_id"] in configured]) if configured else len(get_models()),
+    }
+
 
 @app.get("/health")
 async def health():
@@ -578,4 +606,3 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host=HOST, port=PORT)
-

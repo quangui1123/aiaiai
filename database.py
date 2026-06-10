@@ -433,8 +433,79 @@ def init_db():
             "INSERT OR REPLACE INTO models (id, provider_id, display_name, input_price, output_price) VALUES (?, ?, ?, ?, ?)",
             models
         )
+    conn.executescript("""
+        CREATE INDEX IF NOT EXISTS idx_models_id ON models(id);
+        CREATE INDEX IF NOT EXISTS idx_channels_provider ON channels(provider_id, enabled);
+        CREATE INDEX IF NOT EXISTS idx_usage_logs_created ON usage_logs(created_at);
+        CREATE INDEX IF NOT EXISTS idx_user_tokens_user ON user_tokens(user_id);
+    """)
     conn.commit()
     conn.close()
+
+
+def get_configured_provider_ids() -> set[str]:
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT DISTINCT provider_id FROM channels WHERE enabled = 1"
+    ).fetchall()
+    conn.close()
+    return {r["provider_id"] for r in rows}
+
+
+def resolve_model(model_id: str, provider_hint: str | None = None, _seen: set | None = None) -> dict | None:
+    """Resolve model to a provider. Prefer providers with configured channels."""
+    if _seen is None:
+        _seen = set()
+    key = (model_id, provider_hint or "")
+    if key in _seen:
+        return None  # prevent infinite recursion
+    _seen.add(key)
+
+    conn = get_db()
+    configured = get_configured_provider_ids()
+
+    if provider_hint:
+        row = conn.execute(
+            """SELECT m.*, p.name as provider_name FROM models m
+               JOIN providers p ON m.provider_id = p.id
+               WHERE m.id = ? AND m.provider_id = ? AND m.enabled = 1 AND p.enabled = 1""",
+            (model_id, provider_hint),
+        ).fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    rows = conn.execute(
+        """SELECT m.*, p.name as provider_name FROM models m
+           JOIN providers p ON m.provider_id = p.id
+           WHERE m.id = ? AND m.enabled = 1 AND p.enabled = 1
+           ORDER BY m.provider_id""",
+        (model_id,),
+    ).fetchall()
+
+    if rows:
+        conn.close()
+        with_channel = [dict(r) for r in rows if r["provider_id"] in configured]
+        if with_channel:
+            return with_channel[0]
+        return dict(rows[0])
+
+    all_models = conn.execute(
+        """SELECT m.id, m.provider_id, p.name as provider_name FROM models m
+           JOIN providers p ON m.provider_id = p.id
+           WHERE m.enabled = 1 AND p.enabled = 1
+           ORDER BY LENGTH(m.id) DESC"""
+    ).fetchall()
+    conn.close()
+
+    for row in all_models:
+        if model_id.startswith(row["id"]):
+            if configured and row["provider_id"] not in configured:
+                continue
+            full = resolve_model(row["id"], row["provider_id"], _seen)
+            if full:
+                return full
+    return None
+
 
 # ── User management ─────────────────────────────────
 
@@ -464,12 +535,18 @@ def create_user(email: str, password: str, name: str = "", is_admin: bool = Fals
         return None
 
 
-def get_user_by_email(email: str) -> Optional[dict]:
+def get_user_by_email(email: str, include_disabled: bool = False) -> Optional[dict]:
     conn = get_db()
-    row = conn.execute(
-        "SELECT * FROM users WHERE email = ? AND enabled = 1",
-        (email.strip().lower(),)
-    ).fetchone()
+    if include_disabled:
+        row = conn.execute(
+            "SELECT * FROM users WHERE email = ?",
+            (email.strip().lower(),),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT * FROM users WHERE email = ? AND enabled = 1",
+            (email.strip().lower(),),
+        ).fetchone()
     conn.close()
     return dict(row) if row else None
 
@@ -627,10 +704,12 @@ def revoke_token(tid):
 def update_token(tid, **kw):
     conn = get_db()
     allowed = {"name", "email", "quota", "rate_limit_rpm", "enabled"}
-    updates = {k: v for k, v in kw.items() if k in allowed}
+    updates = {k: v for k, v in kw.items() if k in allowed and v is not None}
+    if "enabled" in updates:
+        updates["enabled"] = 1 if updates["enabled"] else 0
     if updates:
         parts = ", ".join(f"{k}=?" for k in updates)
-        conn.execute(f"UPDATE user_tokens SET {parts} WHERE id=?", (*updates.values(), tid))
+        conn.execute(f"UPDATE user_tokens SET {parts} WHERE id=?", (*list(updates.values()), tid))
         conn.commit()
     conn.close()
 
@@ -700,29 +779,43 @@ def get_usage_stats(days=30, user_id=None):
         tids = [r[0] for r in conn.execute("SELECT id FROM user_tokens WHERE user_id = ?", (user_id,)).fetchall()]
         if not tids:
             conn.close()
-            return {"total_requests": 0, "total_prompt_tokens": 0, "total_completion_tokens": 0, "total_tokens": 0, "total_cost": 0, "by_provider": [], "by_model": []}
+            return {"total_requests": 0, "total_prompt_tokens": 0, "total_completion_tokens": 0, "total_tokens": 0, "total_cost": 0, "by_provider": [], "by_model": [], "by_token": []}
         placeholders = ",".join("?" * len(tids))
+        time_filter = f"-{days} days"
         total = conn.execute(
             f"SELECT COUNT(*) as n, COALESCE(SUM(prompt_tokens),0) pt, COALESCE(SUM(completion_tokens),0) ct, COALESCE(SUM(total_tokens),0) tt, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE token_id IN ({placeholders}) AND created_at >= datetime('now', ?)",
-            (*tids, f"-{days} days")
+            (*tids, time_filter)
         ).fetchone()
         by_provider = conn.execute(
             f"SELECT provider, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE token_id IN ({placeholders}) AND created_at >= datetime('now', ?) GROUP BY provider ORDER BY n DESC",
-            (*tids, f"-{days} days")
+            (*tids, time_filter)
+        ).fetchall()
+        by_model = conn.execute(
+            f"SELECT model, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE token_id IN ({placeholders}) AND created_at >= datetime('now', ?) GROUP BY model ORDER BY n DESC",
+            (*tids, time_filter)
+        ).fetchall()
+        by_token = conn.execute(
+            f"SELECT user_name, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE token_id IN ({placeholders}) AND created_at >= datetime('now', ?) GROUP BY token_id ORDER BY n DESC",
+            (*tids, time_filter)
         ).fetchall()
     else:
+        time_filter = f"-{days} days"
         total = conn.execute(
             "SELECT COUNT(*) as n, COALESCE(SUM(prompt_tokens),0) pt, COALESCE(SUM(completion_tokens),0) ct, COALESCE(SUM(total_tokens),0) tt, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?)",
-            (f"-{days} days",)
+            (time_filter,)
         ).fetchone()
         by_provider = conn.execute(
             "SELECT provider, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY provider ORDER BY n DESC",
-            (f"-{days} days",)
+            (time_filter,)
         ).fetchall()
-    by_token = conn.execute(
-        "SELECT user_name, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY token_id ORDER BY n DESC",
-        (f"-{days} days",)
-    ).fetchall()
+        by_model = conn.execute(
+            "SELECT model, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY model ORDER BY n DESC",
+            (time_filter,)
+        ).fetchall()
+        by_token = conn.execute(
+            "SELECT user_name, COUNT(*) n, COALESCE(SUM(total_tokens),0) t, COALESCE(SUM(quota_used),0) cost FROM usage_logs WHERE created_at >= datetime('now', ?) GROUP BY token_id ORDER BY n DESC",
+            (time_filter,)
+        ).fetchall()
     conn.close()
     return {
         "total_requests": total["n"],
@@ -731,6 +824,7 @@ def get_usage_stats(days=30, user_id=None):
         "total_tokens": total["tt"],
         "total_cost": round(total["cost"], 4),
         "by_provider": [dict(r) for r in by_provider],
+        "by_model": [dict(r) for r in by_model],
         "by_token": [dict(r) for r in by_token],
     }
 
@@ -805,12 +899,24 @@ def delete_channel(cid):
 def update_channel(cid, **kw):
     conn = get_db()
     allowed = {"name", "api_key", "weight", "enabled"}
-    updates = {k: v for k, v in kw.items() if k in allowed}
+    updates = {k: v for k, v in kw.items() if k in allowed and v is not None}
+    if "enabled" in updates:
+        updates["enabled"] = 1 if updates["enabled"] else 0
     if updates:
         parts = ", ".join(f"{k}=?" for k in updates)
         conn.execute(f"UPDATE channels SET {parts} WHERE id=?", (*updates.values(), cid))
         conn.commit()
     conn.close()
+
+
+def get_all_channel_keys(provider_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, api_key, weight FROM channels WHERE provider_id=? AND enabled=1 ORDER BY weight DESC",
+        (provider_id,),
+    ).fetchall()
+    conn.close()
+    return [(r["api_key"], r["id"]) for r in rows]
 
 
 def get_channel_key(provider_id):
@@ -849,12 +955,18 @@ def get_models(provider_id=None):
     return [dict(r) for r in rows]
 
 
-def get_model_price(model_id):
+def get_model_price(model_id, provider_id=None):
     conn = get_db()
-    row = conn.execute(
-        "SELECT input_price, output_price, unit_size, provider_id FROM models WHERE id=? AND enabled=1 LIMIT 1",
-        (model_id,)
-    ).fetchone()
+    if provider_id:
+        row = conn.execute(
+            "SELECT input_price, output_price, unit_size, provider_id FROM models WHERE id=? AND provider_id=? AND enabled=1",
+            (model_id, provider_id),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT input_price, output_price, unit_size, provider_id FROM models WHERE id=? AND enabled=1 LIMIT 1",
+            (model_id,),
+        ).fetchone()
     conn.close()
     return dict(row) if row else None
 

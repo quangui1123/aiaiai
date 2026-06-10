@@ -13,6 +13,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 nav{display:flex;align-items:center;gap:4px}
 nav a{padding:6px 12px;color:var(--dim);text-decoration:none;font-size:13px;border-radius:6px;transition:all .15s}
 nav a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+nav .user-name{color:var(--text);font-size:12px;padding:0 8px}
 .hero{padding:80px 24px 48px;text-align:center;max-width:680px;margin:0 auto}
 .hero h1{font-size:36px;font-weight:700;margin-bottom:14px;letter-spacing:-.5px;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hero p{color:var(--dim);font-size:16px;line-height:1.7;max-width:520px;margin:0 auto 28px}
@@ -48,12 +49,14 @@ footer{text-align:center;padding:32px 24px;color:var(--dim);font-size:12px;borde
 footer a{color:var(--accent);text-decoration:none}
 .toast{position:fixed;top:20px;right:20px;z-index:999;padding:10px 18px;border-radius:var(--radius);font-size:13px;animation:slideIn .3s ease;background:rgba(56,217,169,.12);border:1px solid var(--green);color:var(--green)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.btn-logout{background:none;border:1px solid var(--border);color:var(--red);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px;transition:all .15s;margin-left:4px}
+.btn-logout:hover{background:rgba(255,107,107,.08)}
 </style>
 </head>
 <body>
 <header>
 <a href="/" class="logo">⚡ AI Token Proxy</a>
-<nav>
+<nav id="topNav">
 <a href="/">首页</a>
 <a href="/pricing">模型定价</a>
 <a href="/login">登录</a>
@@ -131,14 +134,27 @@ curl https://HOST/v1/models -H "Authorization: Bearer $TOKEN"</span>
 </div>
 </div>
 
-<footer>AI Token Proxy — 自托管 LLM API 聚合网关 · <a href="/login">管理后台</a></footer>
+<footer>AI Token Proxy — 自托管 LLM API 聚合网关 · <a href="/dashboard">控制台</a> · <a href="/login">登录</a></footer>
 
 <script>
+function initNav(){
+var jwt=localStorage.getItem('aiaiai_jwt');
+var user=null;
+try{user=JSON.parse(localStorage.getItem('aiaiai_user')||'{}')}catch(e){}
+var nav=document.getElementById('topNav');
+if(jwt&&user.email){
+var isAdmin=user.is_admin;
+nav.innerHTML='<a href="/">首页</a><a href="/pricing">模型定价</a><span class="user-name">'+user.name+'</span><a href="'+(isAdmin?'/admin':'/dashboard')+'">控制台</a><button class="btn-logout" onclick="logout()">退出</button>';
+}
+}
+function logout(){localStorage.clear();window.location.href='/login'}
+
 async function loadPricing(){
 try{
+var sr=await fetch('/api/public/status');var st=sr.ok?await sr.json():{};
 var r=await fetch('/api/public/models');
 var d=await r.json();
-document.getElementById('modelCount').textContent=d.models.length;
+document.getElementById('modelCount').textContent=st.models_available||d.models.length;
 if(!d.models.length)return;
 var groups={};
 d.models.forEach(function(m){
@@ -168,6 +184,7 @@ var t=document.createElement('div');t.className='toast';t.textContent='已复制
 setTimeout(function(){t.remove()},2000);
 });
 }
+initNav();
 loadPricing();
 </script>
 </body>
