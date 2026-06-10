@@ -2,7 +2,6 @@ services:
   - type: web
     name: ai-token-proxy
     env: python
-    runtime: python-3.12
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -12,6 +11,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: PYTHON_VERSION
+        value: "3.12"
       - key: DEFAULT_QUOTA
         value: "0.5"
     disk:
