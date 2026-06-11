@@ -1,5 +1,4 @@
 app = "ai-token-proxy"
-primary_region = "hkg"
 
 [build]
   dockerfile = "Dockerfile"
