@@ -73,7 +73,7 @@ var JWT=localStorage.getItem('aiaiai_jwt'),USER=JSON.parse(localStorage.getItem(
 if(!JWT||!USER.is_admin)window.location.href='/login';
 var H={'Authorization':'Bearer '+JWT},page='概览';
 
-function API(p,o){return fetch(p,{...o||{},headers:{...H,...(o&&o.headers||{})}})}
+function API(p,o){return fetch(p,{...o||{},headers:{...H,...(o&&o.headers||{})}}).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error((e.detail||e.message||e.error||'API error')+': '+p)});return r})}
 function nav(p){page=p;document.querySelectorAll('.nav-item').forEach(function(e){e.classList.toggle('active',e.dataset.p===p)});render()}
 function cp(t){navigator.clipboard.writeText(t)}
 function toast(m){var d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},2200)}
@@ -83,17 +83,20 @@ function logout(){localStorage.clear();window.location.href='/login'}
 document.querySelectorAll('.nav-item').forEach(function(e){e.addEventListener('click',function(){nav(e.dataset.p)})});
 
 async function render(){
-var o=document.getElementById('main');o.innerHTML='<div class="empty"><span class="loading-spinner"></span> 加载中...</div>';
+var o=document.getElementById('main');
+if(!o)return;
+o.innerHTML='<div class="empty"><span class="loading-spinner"></span> 加载中...</div>';
 try{
 switch(page){
-case '概览':return renderDash(o);
-case '用户':return renderUsers(o);
-case '渠道':return renderChannels(o);
-case '令牌':return renderTokens(o);
-case '定价':return renderModels(o);
-case '日志':return renderLogs(o);
+case '概览':await renderDash(o);break;
+case '用户':await renderUsers(o);break;
+case '渠道':await renderChannels(o);break;
+case '令牌':await renderTokens(o);break;
+case '定价':await renderModels(o);break;
+case '日志':await renderLogs(o);break;
+default:o.innerHTML='<div class="empty">未知页面</div>';
 }
-}catch(e){o.innerHTML='<div class="empty" style="color:var(--red)">错误: '+e.message+'</div>'}
+}catch(e){console.error(e);o.innerHTML='<div class="empty" style="color:var(--red)">错误: '+e.message+'</div>'}
 }
 
 async function renderDash(o){
