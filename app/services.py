@@ -44,9 +44,8 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 3)
 
 
-def calc_cost(model_id, provider_id, prompt_tokens, completion_tokens):
-    import asyncio
-    price = asyncio.run(repo.get_model_price(model_id, provider_id))
+async def calc_cost(model_id, provider_id, prompt_tokens, completion_tokens):
+    price = await repo.get_model_price(model_id, provider_id)
     if not price:
         return 0
     units = price["unit_size"]
@@ -101,7 +100,7 @@ async def handle_chat_completion(req: ChatRequest, td: dict):
                 return await _handle_stream(adapter, req_copy, tid, uname, provider_id, actual_model, prompt_est)
 
             resp = await adapter.chat(req_copy)
-            cost = calc_cost(actual_model, provider_id, resp.usage.prompt_tokens, resp.usage.completion_tokens)
+            cost = await calc_cost(actual_model, provider_id, resp.usage.prompt_tokens, resp.usage.completion_tokens)
             await repo.log_usage(tid, uname, provider_id, actual_model,
                                  resp.usage.prompt_tokens, resp.usage.completion_tokens,
                                  resp.usage.total_tokens, cost, "success")
@@ -157,7 +156,7 @@ async def _handle_stream(adapter, req_copy, tid, uname, provider_id, actual_mode
                 pt = prompt_est
             if ct == 0 and content_len:
                 ct = estimate_tokens("x" * content_len)
-            cost = calc_cost(actual_model, provider_id, pt, ct)
+            cost = await calc_cost(actual_model, provider_id, pt, ct)
             await repo.log_usage(tid, uname, provider_id, actual_model, pt, ct, tt or (pt + ct), cost, "success")
         except Exception:
             await repo.log_usage(tid, uname, provider_id, actual_model, 0, 0, 0, 0, "error")

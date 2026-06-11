@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.models import (
     ChatRequest, TokenCreateRequest, TokenUpdateRequest, QuotaAddRequest,
@@ -37,7 +37,7 @@ def extract_bearer_token(authorization: str | None, credentials: HTTPAuthorizati
     return None
 
 
-async def get_token_user(request, credentials=Depends(security)):
+async def get_token_user(request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(security)):
     token = extract_bearer_token(request.headers.get("authorization"), credentials)
     if not token:
         raise HTTPException(401, detail={"error": {"message": "Missing authorization header", "type": "invalid_request_error"}})
@@ -80,7 +80,7 @@ def _user_payload(user: dict) -> dict:
 # ── v1 Router (OpenAI-compatible) ───────────────────
 
 @v1_router.post("/chat/completions")
-async def chat_completions(req: ChatRequest, request=None, td=Depends(get_token_user)):
+async def chat_completions(req: ChatRequest, td=Depends(get_token_user)):
     return await handle_chat_completion(req, td)
 
 
